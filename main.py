@@ -1,0 +1,201 @@
+import tkinter as tk
+from tkinter import filedialog, ttk, messagebox
+import threading
+import pandas as pd
+import os
+import easyocr
+import re
+import difflib
+from PIL import Image
+
+# Список корректных ников
+DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
+           'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
+           'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
+           'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest']
+
+stop_flag = False
+df_global = pd.DataFrame()
+
+def correct_nick(text_block):
+    words = re.findall(r'\b\w+\b', text_block)
+    corrected_nick = None
+    for word in words:
+        matches = difflib.get_close_matches(word, DD_list, n=1, cutoff=0.6)
+        if matches:
+            corrected_nick = matches[0]
+            text_block = re.sub(r'\b' + re.escape(word) + r'\b', '', text_block, count=1)
+            break
+    if corrected_nick:
+        text_block = corrected_nick + ' ' + text_block.strip()
+    return text_block
+
+def resize_if_needed(image_path, min_width=1800, min_height=600):
+    """Проверяет размер картинки и при необходимости изменяет его."""
+    with Image.open(image_path) as img:
+        width, height = img.size
+        if width != min_width or height != min_height:
+            img = img.resize((min_width, min_height), Image.LANCZOS)
+            img.save(image_path)
+            print(f"Resized {image_path} to {min_width}x{min_height}")
+
+def finalize_block(block_text):
+    nick_match = re.match(r'^\s*(\w+)', block_text)
+    nick = nick_match.group(1) if nick_match else ""
+
+    class_match = re.search(r'Класс[:;\s]*([^\s(]+)', block_text)
+    cls = class_match.group(1) if class_match else ""
+
+    numbers = []
+    pvp_match = re.search(r'Очки.*', block_text, re.IGNORECASE)
+    if pvp_match:
+        tail = pvp_match.group(0)
+        numbers = re.findall(r'\d+', tail)
+
+    first_two = []
+    i = 0
+    while i < len(numbers) and len(first_two) < 2:
+        num = numbers[i]
+        # если короткое число (<5 знаков) и есть следующее → склеиваем
+        if len(num) < 5 and i + 1 < len(numbers):
+            combined = num + numbers[i + 1]
+            first_two.append(int(combined))
+            i += 2
+        else:
+            first_two.append(int(num))
+            i += 1
+
+    cleaned = f"{nick} Класс: {cls} {' '.join(map(str, first_two))}".strip()
+    return cleaned
+
+def process_files(file_list, progress_var):
+    global stop_flag
+    reader = easyocr.Reader(['en', 'ru'], gpu=True)
+    results = {}
+
+    for i, file_path in enumerate(file_list):
+        if stop_flag:
+            break
+
+        # Предварительная обработка размера
+        resize_if_needed(file_path)
+
+        # Распознавание текста
+        text_result = reader.readtext(file_path, detail=0, paragraph=True)
+        full_text = " ".join(text_result)
+
+        # Коррекция ника
+        corrected = correct_nick(full_text)
+
+        # Очистка блока текста
+        cleaned = finalize_block(corrected)
+        results[os.path.basename(file_path)] = cleaned
+
+        # Обновление прогресса
+        progress_var.set(int((i + 1) / len(file_list) * 100))
+
+    return results
+
+def start_processing():
+    global stop_flag, df_global
+    stop_flag = False
+    before_files = before_listbox.get(0, tk.END)
+    after_files = after_listbox.get(0, tk.END)
+    if not before_files or not after_files:
+        messagebox.showwarning("Ошибка", "Добавьте файлы до и после")
+        return
+
+    progress_var.set(0)
+    table_text.delete(1.0, tk.END)
+
+    def worker():
+        global df_global
+        before_data = process_files(before_files, progress_var)
+        after_data = process_files(after_files, progress_var)
+
+        table = []
+        for key in before_data:
+            b = before_data[key].split()
+            nick_b = b[0]
+            a_values = None
+            for a_key, a_val in after_data.items():
+                if a_val.startswith(nick_b):
+                    a_values = a_val.split()
+                    break
+            if a_values and len(b) >= 4 and len(a_values) >= 4:
+                nick = b[0]
+                cls = b[2]
+                honor_diff = int(a_values[3]) - int(b[3])
+                kills_diff = int(a_values[4]) - int(b[4])
+                table.append([nick, cls, honor_diff, kills_diff])
+
+        df_global = pd.DataFrame(table, columns=["Ник", "Класс", "Хонор", "Киллы"])
+        df_global.sort_values("Киллы", ascending=False, inplace=True)
+        table_text.insert(tk.END, df_global.to_string(index=False))
+        messagebox.showinfo("Готово", "Обработка завершена, таблица готова")
+
+    threading.Thread(target=worker).start()
+
+def stop_processing():
+    global stop_flag
+    stop_flag = True
+
+def add_files(listbox):
+    files = filedialog.askopenfilenames(filetypes=[("PNG Files","*.png")])
+    for f in files:
+        listbox.insert(tk.END, f)
+
+def remove_selected(listbox):
+    selected = listbox.curselection()
+    for i in reversed(selected):
+        listbox.delete(i)
+
+def save_table_excel():
+    global df_global
+    if df_global.empty:
+        messagebox.showwarning("Внимание", "Таблица пуста, нечего сохранять")
+        return
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".xlsx",
+        filetypes=[("Excel files", "*.xlsx")],
+        title="Сохранить таблицу как..."
+    )
+    if file_path:
+        df_global.to_excel(file_path, index=False)
+        messagebox.showinfo("Готово", f"Таблица сохранена: {file_path}")
+
+# Интерфейс Tkinter
+root = tk.Tk()
+root.title("Сравнение скриншотов")
+
+frame = tk.Frame(root)
+frame.pack(padx=10, pady=10)
+
+# До
+tk.Label(frame, text="До:").grid(row=0, column=0)
+before_listbox = tk.Listbox(frame, width=60)
+before_listbox.grid(row=1, column=0)
+tk.Button(frame, text="Добавить файлы", command=lambda: add_files(before_listbox)).grid(row=2, column=0)
+tk.Button(frame, text="Удалить выбранное", command=lambda: remove_selected(before_listbox)).grid(row=3, column=0)
+
+# После
+tk.Label(frame, text="После:").grid(row=0, column=1)
+after_listbox = tk.Listbox(frame, width=60)
+after_listbox.grid(row=1, column=1)
+tk.Button(frame, text="Добавить файлы", command=lambda: add_files(after_listbox)).grid(row=2, column=1)
+tk.Button(frame, text="Удалить выбранное", command=lambda: remove_selected(after_listbox)).grid(row=3, column=1)
+
+# Управление
+tk.Button(root, text="Старт", command=start_processing).pack(pady=5)
+tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
+tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
+tk.Button(root, text="Выход", command=root.quit).pack(pady=5)
+
+progress_var = tk.IntVar()
+progress = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate", variable=progress_var)
+progress.pack(pady=5)
+
+table_text = tk.Text(root, width=100, height=15)
+table_text.pack(pady=5)
+
+root.mainloop()
