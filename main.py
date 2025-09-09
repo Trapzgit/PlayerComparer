@@ -6,9 +6,11 @@ import os
 import easyocr
 import re
 import difflib
+from pathlib import Path
 from PIL import Image
+import string
 
-# Список корректных ников
+# ---------------------- Список корректных ников ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
@@ -17,6 +19,28 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
 stop_flag = False
 df_global = pd.DataFrame()
 
+# ---------------------- Безопасные имена файлов ---------------------- #
+def safe_filename(name):
+    # Оставляем только буквы ASCII, цифры и подчеркивания
+    valid_chars = string.ascii_letters + string.digits + "_"
+    return ''.join(c if c in valid_chars else "_" for c in name)
+
+def add_files(listbox):
+    files = filedialog.askopenfilenames(filetypes=[("PNG Files","*.png")])
+    for f in files:
+        file_path = Path(f)
+        new_name = safe_filename(file_path.stem) + file_path.suffix
+        safe_path = file_path.parent / new_name
+        if safe_path != file_path:
+            file_path.rename(safe_path)  # переименовываем на месте
+        listbox.insert(tk.END, str(safe_path))
+
+def remove_selected(listbox):
+    selected = listbox.curselection()
+    for i in reversed(selected):
+        listbox.delete(i)
+
+# ---------------------- Обработка текста ---------------------- #
 def correct_nick(text_block):
     words = re.findall(r'\b\w+\b', text_block)
     corrected_nick = None
@@ -29,15 +53,6 @@ def correct_nick(text_block):
     if corrected_nick:
         text_block = corrected_nick + ' ' + text_block.strip()
     return text_block
-
-def resize_if_needed(image_path, min_width=1800, min_height=600):
-    """Проверяет размер картинки и при необходимости изменяет его."""
-    with Image.open(image_path) as img:
-        width, height = img.size
-        if width != min_width or height != min_height:
-            img = img.resize((min_width, min_height), Image.LANCZOS)
-            img.save(image_path)
-            print(f"Resized {image_path} to {min_width}x{min_height}")
 
 def finalize_block(block_text):
     nick_match = re.match(r'^\s*(\w+)', block_text)
@@ -56,7 +71,6 @@ def finalize_block(block_text):
     i = 0
     while i < len(numbers) and len(first_two) < 2:
         num = numbers[i]
-        # если короткое число (<5 знаков) и есть следующее → склеиваем
         if len(num) < 5 and i + 1 < len(numbers):
             combined = num + numbers[i + 1]
             first_two.append(int(combined))
@@ -68,34 +82,35 @@ def finalize_block(block_text):
     cleaned = f"{nick} Класс: {cls} {' '.join(map(str, first_two))}".strip()
     return cleaned
 
+# ---------------------- Обработка изображений ---------------------- #
+def resize_if_needed(image_path, min_width=1800, min_height=600):
+    with Image.open(image_path) as img:
+        width, height = img.size
+        if width != min_width or height != min_height:
+            img = img.resize((min_width, min_height), Image.LANCZOS)
+            img.save(image_path)
+            print(f"Resized {image_path} to {min_width}x{min_height}")
+
 def process_files(file_list, progress_var):
     global stop_flag
     reader = easyocr.Reader(['en', 'ru'], gpu=True)
     results = {}
 
-    for i, file_path in enumerate(file_list):
+    for i, file_str in enumerate(file_list):
         if stop_flag:
             break
-
-        # Предварительная обработка размера
+        file_path = Path(file_str)
         resize_if_needed(file_path)
-
-        # Распознавание текста
-        text_result = reader.readtext(file_path, detail=0, paragraph=True)
+        text_result = reader.readtext(str(file_path), detail=0, paragraph=True)
         full_text = " ".join(text_result)
-
-        # Коррекция ника
         corrected = correct_nick(full_text)
-
-        # Очистка блока текста
         cleaned = finalize_block(corrected)
-        results[os.path.basename(file_path)] = cleaned
-
-        # Обновление прогресса
-        progress_var.set(int((i + 1) / len(file_list) * 100))
+        results[file_path.name] = cleaned
+        progress_var.set(int((i+1)/len(file_list)*100))
 
     return results
 
+# ---------------------- GUI и поток обработки ---------------------- #
 def start_processing():
     global stop_flag, df_global
     stop_flag = False
@@ -140,16 +155,7 @@ def stop_processing():
     global stop_flag
     stop_flag = True
 
-def add_files(listbox):
-    files = filedialog.askopenfilenames(filetypes=[("PNG Files","*.png")])
-    for f in files:
-        listbox.insert(tk.END, f)
-
-def remove_selected(listbox):
-    selected = listbox.curselection()
-    for i in reversed(selected):
-        listbox.delete(i)
-
+# ---------------------- Работа с файлами ---------------------- #
 def save_table_excel():
     global df_global
     if df_global.empty:
@@ -164,28 +170,25 @@ def save_table_excel():
         df_global.to_excel(file_path, index=False)
         messagebox.showinfo("Готово", f"Таблица сохранена: {file_path}")
 
-# Интерфейс Tkinter
+# ---------------------- GUI ---------------------- #
 root = tk.Tk()
-root.title("Сравнение скриншотов")
+root.title("ArcheAge PlayerComparer v1.0")
 
 frame = tk.Frame(root)
 frame.pack(padx=10, pady=10)
 
-# До
 tk.Label(frame, text="До:").grid(row=0, column=0)
 before_listbox = tk.Listbox(frame, width=60)
 before_listbox.grid(row=1, column=0)
 tk.Button(frame, text="Добавить файлы", command=lambda: add_files(before_listbox)).grid(row=2, column=0)
 tk.Button(frame, text="Удалить выбранное", command=lambda: remove_selected(before_listbox)).grid(row=3, column=0)
 
-# После
 tk.Label(frame, text="После:").grid(row=0, column=1)
 after_listbox = tk.Listbox(frame, width=60)
 after_listbox.grid(row=1, column=1)
 tk.Button(frame, text="Добавить файлы", command=lambda: add_files(after_listbox)).grid(row=2, column=1)
 tk.Button(frame, text="Удалить выбранное", command=lambda: remove_selected(after_listbox)).grid(row=3, column=1)
 
-# Управление
 tk.Button(root, text="Старт", command=start_processing).pack(pady=5)
 tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
 tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
