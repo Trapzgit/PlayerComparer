@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 import threading
 import pandas as pd
-import os
 import easyocr
 import re
 import difflib
@@ -15,7 +14,8 @@ import sys
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
-           'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest']
+           'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest', 'Iletyouhide',
+           'Сомнительнополезен', 'Dimonishzv', 'Слабейшеебедствие', 'Особонеопасен','Пиуупиу', 'Ксюшасуперкрутая']
 stop_flag = False
 df_global = pd.DataFrame()
 LOG_FILE = Path(sys.executable).parent / "logs.txt"
@@ -225,7 +225,19 @@ progress_var = tk.IntVar()
 progress = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate", variable=progress_var)
 progress.pack(pady=5)
 
-table_text = tk.Text(root, width=100, height=15)
-table_text.pack(pady=5)
+# Поле для таблицы с прокруткой
+table_frame = tk.Frame(root)
+table_frame.pack(pady=5)
+
+scrollbar = tk.Scrollbar(table_frame)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+table_text = tk.Text(table_frame, width=100, height=15, yscrollcommand=scrollbar.set)
+table_text.pack(side=tk.LEFT)
+
+scrollbar.config(command=table_text.yview)
+
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_columns", None)
 
 root.mainloop()
