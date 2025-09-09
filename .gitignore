@@ -1,28 +1,57 @@
-# Python
+# Python cache
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+env/
+ENV/
+
+# Byte-compiled / optimized / DLL files
 *.pyc
 *.pyo
 *.pyd
-*.log
 
-# venv
-.venv/
-env/
-venv/
-
-# IDE
-.vscode/
-.idea/
-
-# PyInstaller
+# Distribution / packaging
 build/
 dist/
-*.spec
+*.egg-info/
+*.egg
+*.whl
 
-# OS
-.DS_Store
-Thumbs.db
+# Logs
+logs.txt
+*.log
 
-# Excel/результаты
+# Temporary files
+*.tmp
+*.swp
+*.bak
+
+# IDE / editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.iml
+*.workspace.xml
+
+# Excel outputs
 *.xlsx
-*.csv
+
+# MacOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+Desktop.ini
+
+# Ignore PyInstaller or PyOxidizer outputs if you build exe
+dist/
+*.spec
+build/
+
+# Ignore hidden system files
+*.~*
