@@ -197,7 +197,7 @@ def save_log_file():
 
 # ---------------------- GUI ---------------------- #
 root = tk.Tk()
-root.title("ArcheAge PlayersComparer v1.1.0")
+root.title("ArcheAge PlayersComparer v1.2.0")
 root.resizable(False, False)
 
 frame = tk.Frame(root)
