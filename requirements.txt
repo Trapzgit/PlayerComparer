@@ -1,0 +1,9 @@
+
+---
+
+### 📄 `requirements.txt`
+```txt
+easyocr
+pandas
+pillow
+tk
