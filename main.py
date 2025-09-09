@@ -9,38 +9,22 @@ import difflib
 from pathlib import Path
 from PIL import Image
 import string
+import sys
 
-# ---------------------- Список корректных ников ---------------------- #
+# ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
            'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest']
-
 stop_flag = False
 df_global = pd.DataFrame()
+LOG_FILE = Path(sys.executable).parent / "logs.txt"
 
-# ---------------------- Безопасные имена файлов ---------------------- #
+# ---------------------- Помощники ---------------------- #
 def safe_filename(name):
-    # Оставляем только буквы ASCII, цифры и подчеркивания
     valid_chars = string.ascii_letters + string.digits + "_"
     return ''.join(c if c in valid_chars else "_" for c in name)
 
-def add_files(listbox):
-    files = filedialog.askopenfilenames(filetypes=[("PNG Files","*.png")])
-    for f in files:
-        file_path = Path(f)
-        new_name = safe_filename(file_path.stem) + file_path.suffix
-        safe_path = file_path.parent / new_name
-        if safe_path != file_path:
-            file_path.rename(safe_path)  # переименовываем на месте
-        listbox.insert(tk.END, str(safe_path))
-
-def remove_selected(listbox):
-    selected = listbox.curselection()
-    for i in reversed(selected):
-        listbox.delete(i)
-
-# ---------------------- Обработка текста ---------------------- #
 def correct_nick(text_block):
     words = re.findall(r'\b\w+\b', text_block)
     corrected_nick = None
@@ -82,7 +66,14 @@ def finalize_block(block_text):
     cleaned = f"{nick} Класс: {cls} {' '.join(map(str, first_two))}".strip()
     return cleaned
 
-# ---------------------- Обработка изображений ---------------------- #
+def write_log(filename, folder_name, raw_text, final_text):
+    with LOG_FILE.open('a', encoding='utf-8') as f:
+        f.write(f"--- {folder_name}/{filename} ---\n")
+        f.write("OCR текст:\n")
+        f.write(raw_text + "\n")
+        f.write("После обработки:\n")
+        f.write(final_text + "\n\n")
+
 def resize_if_needed(image_path, min_width=1800, min_height=600):
     with Image.open(image_path) as img:
         width, height = img.size
@@ -91,7 +82,8 @@ def resize_if_needed(image_path, min_width=1800, min_height=600):
             img.save(image_path)
             print(f"Resized {image_path} to {min_width}x{min_height}")
 
-def process_files(file_list, progress_var):
+# ---------------------- Обработка файлов ---------------------- #
+def process_files(file_list, progress_var, folder_name):
     global stop_flag
     reader = easyocr.Reader(['en', 'ru'], gpu=True)
     results = {}
@@ -100,17 +92,26 @@ def process_files(file_list, progress_var):
         if stop_flag:
             break
         file_path = Path(file_str)
+        # Переименование для безопасных путей
+        new_name = safe_filename(file_path.stem) + file_path.suffix
+        safe_path = file_path.parent / new_name
+        if safe_path != file_path:
+            file_path.rename(safe_path)
+        file_path = safe_path
+
         resize_if_needed(file_path)
         text_result = reader.readtext(str(file_path), detail=0, paragraph=True)
         full_text = " ".join(text_result)
         corrected = correct_nick(full_text)
         cleaned = finalize_block(corrected)
+
+        write_log(file_path.name, folder_name, full_text, cleaned)
         results[file_path.name] = cleaned
         progress_var.set(int((i+1)/len(file_list)*100))
 
     return results
 
-# ---------------------- GUI и поток обработки ---------------------- #
+# ---------------------- Поток обработки ---------------------- #
 def start_processing():
     global stop_flag, df_global
     stop_flag = False
@@ -125,8 +126,8 @@ def start_processing():
 
     def worker():
         global df_global
-        before_data = process_files(before_files, progress_var)
-        after_data = process_files(after_files, progress_var)
+        before_data = process_files(before_files, progress_var, folder_name='before')
+        after_data = process_files(after_files, progress_var, folder_name='after')
 
         table = []
         for key in before_data:
@@ -156,6 +157,16 @@ def stop_processing():
     stop_flag = True
 
 # ---------------------- Работа с файлами ---------------------- #
+def add_files(listbox):
+    files = filedialog.askopenfilenames(filetypes=[("PNG Files","*.png")])
+    for f in files:
+        listbox.insert(tk.END, str(Path(f)))  # поддержка кириллицы
+
+def remove_selected(listbox):
+    selected = listbox.curselection()
+    for i in reversed(selected):
+        listbox.delete(i)
+
 def save_table_excel():
     global df_global
     if df_global.empty:
@@ -170,9 +181,24 @@ def save_table_excel():
         df_global.to_excel(file_path, index=False)
         messagebox.showinfo("Готово", f"Таблица сохранена: {file_path}")
 
+def save_log_file():
+    if not LOG_FILE.exists():
+        messagebox.showwarning("Внимание", "Лог еще пуст")
+        return
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".txt",
+        filetypes=[("Text files", "*.txt")],
+        title="Сохранить лог как..."
+    )
+    if file_path:
+        with open(LOG_FILE, 'r', encoding='utf-8') as src, open(file_path, 'w', encoding='utf-8') as dst:
+            dst.write(src.read())
+        messagebox.showinfo("Готово", f"Лог сохранен: {file_path}")
+
 # ---------------------- GUI ---------------------- #
 root = tk.Tk()
-root.title("ArcheAge PlayerComparer v1.0")
+root.title("ArcheAge PlayersComparer v1.1.0")
+root.resizable(False, False)
 
 frame = tk.Frame(root)
 frame.pack(padx=10, pady=10)
@@ -192,6 +218,7 @@ tk.Button(frame, text="Удалить выбранное", command=lambda: remov
 tk.Button(root, text="Старт", command=start_processing).pack(pady=5)
 tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
 tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
+tk.Button(root, text="Сохранить лог", command=save_log_file).pack(pady=5)
 tk.Button(root, text="Выход", command=root.quit).pack(pady=5)
 
 progress_var = tk.IntVar()
