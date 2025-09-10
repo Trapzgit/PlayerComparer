@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.2.0&#10;change version to 1.2.0">
-      <change afterPath="$PROJECT_DIR$/DD_list" afterDir="false" />
+    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.3.0&#10;added clear log file">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -187,7 +186,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757448237962</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="state v1.3.0&#10;added clear log file">
+      <option name="closed" value="true" />
+      <created>1757507327543</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1757507327543</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -225,6 +232,7 @@
     <MESSAGE value="state v1.1.0&#10;update .gitignore" />
     <MESSAGE value="state v1.2.0&#10;added scrool table" />
     <MESSAGE value="state v1.2.0&#10;change version to 1.2.0" />
-    <option name="LAST_COMMIT_MESSAGE" value="state v1.2.0&#10;change version to 1.2.0" />
+    <MESSAGE value="state v1.3.0&#10;added clear log file" />
+    <option name="LAST_COMMIT_MESSAGE" value="state v1.3.0&#10;added clear log file" />
   </component>
 </project>

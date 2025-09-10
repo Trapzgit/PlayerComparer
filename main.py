@@ -40,6 +40,7 @@ def correct_nick(text_block):
         text_block = corrected_nick + ' ' + text_block.strip()
     return text_block
 
+
 def finalize_block(block_text):
     nick_match = re.match(r'^\s*(\w+)', block_text)
     nick = nick_match.group(1) if nick_match else ""
@@ -47,23 +48,19 @@ def finalize_block(block_text):
     class_match = re.search(r'Класс[:;\s]*([^\s(]+)', block_text)
     cls = class_match.group(1) if class_match else ""
 
+    # Находим все числа после "Очки"
     numbers = []
     pvp_match = re.search(r'Очки.*', block_text, re.IGNORECASE)
     if pvp_match:
         tail = pvp_match.group(0)
         numbers = re.findall(r'\d+', tail)
 
-    first_two = []
-    i = 0
-    while i < len(numbers) and len(first_two) < 2:
-        num = numbers[i]
-        if len(num) < 5 and i + 1 < len(numbers):
-            combined = num + numbers[i + 1]
-            first_two.append(int(combined))
-            i += 2
-        else:
-            first_two.append(int(num))
-            i += 1
+    # Берем просто первые два числа (если есть)
+    first_two = [int(n) for n in numbers[:2]]
+
+    # Если чисел меньше двух, дополняем нулями
+    while len(first_two) < 2:
+        first_two.append(0)
 
     cleaned = f"{nick} Класс: {cls} {' '.join(map(str, first_two))}".strip()
     return cleaned
@@ -76,7 +73,7 @@ def write_log(filename, folder_name, raw_text, final_text):
         f.write("После обработки:\n")
         f.write(final_text + "\n\n")
 
-def resize_if_needed(image_path, min_width=1800, min_height=600):
+def resize_if_needed(image_path, min_width=1500, min_height=500):
     with Image.open(image_path) as img:
         width, height = img.size
         if width != min_width or height != min_height:
@@ -210,7 +207,7 @@ def save_log_file():
 
 # ---------------------- GUI ---------------------- #
 root = tk.Tk()
-root.title("ArcheAge PlayersComparer v1.3.0")
+root.title("ArcheAge PlayersComparer v1.3.2")
 root.resizable(False, False)
 
 frame = tk.Frame(root)
