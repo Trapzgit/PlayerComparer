@@ -15,7 +15,9 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
            'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest', 'Iletyouhide',
-           'Сомнительнополезен', 'Dimonishzv', 'Слабейшеебедствие', 'Особонеопасен','Пиуупиу', 'Ксюшасуперкрутая']
+           'Сомнительнополезен', 'Dimonishzv', 'Слабейшеебедствие', 'Особонеопасен','Пиуупиу', 'Ксюшасуперкрутая',
+           'Ксюшаоченькрутая']
+
 stop_flag = False
 df_global = pd.DataFrame()
 LOG_FILE = Path(sys.executable).parent / "logs.txt"
@@ -82,6 +84,13 @@ def resize_if_needed(image_path, min_width=1800, min_height=600):
             img.save(image_path)
             print(f"Resized {image_path} to {min_width}x{min_height}")
 
+# ---------------------- Лог ---------------------- #
+def clear_log():
+    """Удаляем старый лог и создаем пустой файл"""
+    if LOG_FILE.exists():
+        LOG_FILE.unlink()
+    LOG_FILE.touch()
+
 # ---------------------- Обработка файлов ---------------------- #
 def process_files(file_list, progress_var, folder_name):
     global stop_flag
@@ -115,6 +124,10 @@ def process_files(file_list, progress_var, folder_name):
 def start_processing():
     global stop_flag, df_global
     stop_flag = False
+
+    # Очистка лога перед началом обработки
+    clear_log()
+
     before_files = before_listbox.get(0, tk.END)
     after_files = after_listbox.get(0, tk.END)
     if not before_files or not after_files:
@@ -197,7 +210,7 @@ def save_log_file():
 
 # ---------------------- GUI ---------------------- #
 root = tk.Tk()
-root.title("ArcheAge PlayersComparer v1.2.0")
+root.title("ArcheAge PlayersComparer v1.3.0")
 root.resizable(False, False)
 
 frame = tk.Frame(root)
