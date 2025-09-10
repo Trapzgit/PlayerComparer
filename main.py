@@ -27,43 +27,75 @@ def safe_filename(name):
     valid_chars = string.ascii_letters + string.digits + "_"
     return ''.join(c if c in valid_chars else "_" for c in name)
 
+
 def correct_nick(text_block):
-    words = re.findall(r'\b\w+\b', text_block)
+    # Заменяем все спецсимволы на пробелы
+    cleaned_text = re.sub(r'[^\w\s]', ' ', text_block)
+
+    # Разбиваем на слова
+    words = cleaned_text.split()
+
     corrected_nick = None
+    # Ищем подходящий ник среди всех слов
     for word in words:
-        matches = difflib.get_close_matches(word, DD_list, n=1, cutoff=0.6)
+        matches = difflib.get_close_matches(word, DD_list, n=1, cutoff=0.6)  # чуть ниже порога
         if matches:
             corrected_nick = matches[0]
-            text_block = re.sub(r'\b' + re.escape(word) + r'\b', '', text_block, count=1)
             break
+
     if corrected_nick:
+        # Убираем найденное слово из текста
+        text_block = re.sub(re.escape(word), '', text_block, count=1)
         text_block = corrected_nick + ' ' + text_block.strip()
+
     return text_block
 
 
 def finalize_block(block_text):
-    nick_match = re.match(r'^\s*(\w+)', block_text)
-    nick = nick_match.group(1) if nick_match else ""
+    # Убираем лишние символы, оставляем буквы и цифры для поиска ника
+    cleaned_text = re.sub(r'[^A-Za-zА-Яа-я0-9\s]', ' ', block_text)
 
+    # ищем все слова длиной 3-20 символов
+    words = re.findall(r'\b[A-Za-zА-Яа-я0-9]{3,20}\b', cleaned_text)
+
+    best_match = None
+    best_ratio = 0
+    for word in words:
+        matches = difflib.get_close_matches(word, DD_list, n=1, cutoff=0.6)
+        if matches:
+            ratio = difflib.SequenceMatcher(None, word, matches[0]).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_match = matches[0]
+
+    nick = best_match if best_match else "Unknown"
+
+    # Ищем класс
     class_match = re.search(r'Класс[:;\s]*([^\s(]+)', block_text)
     cls = class_match.group(1) if class_match else ""
 
-    # Находим все числа после "Очки"
+    # Ищем числа очков чести и киллов
     numbers = []
     pvp_match = re.search(r'Очки.*', block_text, re.IGNORECASE)
     if pvp_match:
         tail = pvp_match.group(0)
         numbers = re.findall(r'\d+', tail)
 
-    # Берем просто первые два числа (если есть)
-    first_two = [int(n) for n in numbers[:2]]
-
-    # Если чисел меньше двух, дополняем нулями
-    while len(first_two) < 2:
-        first_two.append(0)
+    first_two = []
+    i = 0
+    while i < len(numbers) and len(first_two) < 2:
+        num = numbers[i]
+        if len(num) < 5 and i + 1 < len(numbers):
+            combined = num + numbers[i + 1]
+            first_two.append(int(combined))
+            i += 2
+        else:
+            first_two.append(int(num))
+            i += 1
 
     cleaned = f"{nick} Класс: {cls} {' '.join(map(str, first_two))}".strip()
     return cleaned
+
 
 def write_log(filename, folder_name, raw_text, final_text):
     with LOG_FILE.open('a', encoding='utf-8') as f:
@@ -140,20 +172,27 @@ def start_processing():
         after_data = process_files(after_files, progress_var, folder_name='after')
 
         table = []
+
         for key in before_data:
             b = before_data[key].split()
             nick_b = b[0]
-            a_values = None
-            for a_key, a_val in after_data.items():
-                if a_val.startswith(nick_b):
-                    a_values = a_val.split()
-                    break
-            if a_values and len(b) >= 4 and len(a_values) >= 4:
-                nick = b[0]
-                cls = b[2]
-                honor_diff = int(a_values[3]) - int(b[3])
-                kills_diff = int(a_values[4]) - int(b[4])
-                table.append([nick, cls, honor_diff, kills_diff])
+
+            # Ищем наиболее похожий ник в after_data
+            after_nicks = [v.split()[0] for v in after_data.values()]
+            best_match = difflib.get_close_matches(nick_b, after_nicks, n=1, cutoff=0.8)
+
+            if best_match:
+                # Находим полную строку after
+                for a_val in after_data.values():
+                    if a_val.startswith(best_match[0]):
+                        a_values = a_val.split()
+                        break
+                if a_values and len(b) >= 4 and len(a_values) >= 4:
+                    nick = b[0]
+                    cls = b[2]
+                    honor_diff = int(a_values[3]) - int(b[3])
+                    kills_diff = int(a_values[4]) - int(b[4])
+                    table.append([nick, cls, honor_diff, kills_diff])
 
         df_global = pd.DataFrame(table, columns=["Ник", "Класс", "Хонор", "Киллы"])
         df_global.sort_values("Киллы", ascending=False, inplace=True)
