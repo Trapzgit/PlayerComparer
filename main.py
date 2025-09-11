@@ -10,9 +10,7 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.4.0"
-
-
+__version__ = "v1.5.0"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -25,43 +23,29 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
 stop_flag = False
 df_global = pd.DataFrame()
 LOG_FILE = Path(sys.executable).parent / "logs.txt"
-version = 'v1.3.3'
+
 # ---------------------- Помощники ---------------------- #
 def safe_filename(name):
     valid_chars = string.ascii_letters + string.digits + "_"
     return ''.join(c if c in valid_chars else "_" for c in name)
 
-
 def correct_nick(text_block):
-    # Заменяем все спецсимволы на пробелы
     cleaned_text = re.sub(r'[^\w\s]', ' ', text_block)
-
-    # Разбиваем на слова
     words = cleaned_text.split()
-
     corrected_nick = None
-    # Ищем подходящий ник среди всех слов
     for word in words:
-        matches = difflib.get_close_matches(word, DD_list, n=1, cutoff=0.6)  # чуть ниже порога
+        matches = difflib.get_close_matches(word, DD_list, n=1, cutoff=0.6)
         if matches:
             corrected_nick = matches[0]
             break
-
     if corrected_nick:
-        # Убираем найденное слово из текста
         text_block = re.sub(re.escape(word), '', text_block, count=1)
         text_block = corrected_nick + ' ' + text_block.strip()
-
     return text_block
 
-
 def finalize_block(block_text):
-    # Убираем лишние символы, оставляем буквы и цифры для поиска ника
     cleaned_text = re.sub(r'[^A-Za-zА-Яа-я0-9\s]', ' ', block_text)
-
-    # ищем все слова длиной 3-20 символов
     words = re.findall(r'\b[A-Za-zА-Яа-я0-9]{3,20}\b', cleaned_text)
-
     best_match = None
     best_ratio = 0
     for word in words:
@@ -71,20 +55,14 @@ def finalize_block(block_text):
             if ratio > best_ratio:
                 best_ratio = ratio
                 best_match = matches[0]
-
     nick = best_match if best_match else "Unknown"
-
-    # Ищем класс
     class_match = re.search(r'Класс[:;\s]*([^\s(]+)', block_text)
     cls = class_match.group(1) if class_match else ""
-
-    # Ищем числа очков чести и киллов
     numbers = []
     pvp_match = re.search(r'Очки.*', block_text, re.IGNORECASE)
     if pvp_match:
         tail = pvp_match.group(0)
         numbers = re.findall(r'\d+', tail)
-
     first_two = []
     i = 0
     while i < len(numbers) and len(first_two) < 2:
@@ -96,10 +74,8 @@ def finalize_block(block_text):
         else:
             first_two.append(int(num))
             i += 1
-
     cleaned = f"{nick} Класс: {cls} {' '.join(map(str, first_two))}".strip()
     return cleaned
-
 
 def write_log(filename, folder_name, raw_text, final_text):
     with LOG_FILE.open('a', encoding='utf-8') as f:
@@ -119,90 +95,81 @@ def resize_if_needed(image_path, min_width=1500, min_height=500):
 
 # ---------------------- Лог ---------------------- #
 def clear_log():
-    """Удаляем старый лог и создаем пустой файл"""
     if LOG_FILE.exists():
         LOG_FILE.unlink()
     LOG_FILE.touch()
 
 # ---------------------- Обработка файлов ---------------------- #
-def process_files(file_list, progress_var, folder_name):
+def process_files(file_list, folder_name, current, total, progress_var, reader):
     global stop_flag
-    reader = easyocr.Reader(['en', 'ru'], gpu=True)
     results = {}
-
-    for i, file_str in enumerate(file_list):
+    for file_str in file_list:
         if stop_flag:
             break
         file_path = Path(file_str)
-        # Переименование для безопасных путей
         new_name = safe_filename(file_path.stem) + file_path.suffix
         safe_path = file_path.parent / new_name
         if safe_path != file_path:
             file_path.rename(safe_path)
         file_path = safe_path
-
         resize_if_needed(file_path)
         text_result = reader.readtext(str(file_path), detail=0, paragraph=True)
         full_text = " ".join(text_result)
         corrected = correct_nick(full_text)
         cleaned = finalize_block(corrected)
-
         write_log(file_path.name, folder_name, full_text, cleaned)
         results[file_path.name] = cleaned
-        progress_var.set(int((i+1)/len(file_list)*100))
-
+        current[0] += 1
+        progress_var.set(int(current[0] / total * 100))
     return results
 
 # ---------------------- Поток обработки ---------------------- #
 def start_processing():
     global stop_flag, df_global
     stop_flag = False
-
-    # Очистка лога перед началом обработки
+    df_global = pd.DataFrame()  # сброс перед запуском
     clear_log()
-
     before_files = before_listbox.get(0, tk.END)
     after_files = after_listbox.get(0, tk.END)
     if not before_files or not after_files:
         messagebox.showwarning("Ошибка", "Добавьте файлы до и после")
         return
-
     progress_var.set(0)
     table_text.delete(1.0, tk.END)
+    start_button.config(state="disabled")  # блокируем кнопку
 
     def worker():
         global df_global
-        before_data = process_files(before_files, progress_var, folder_name='before')
-        after_data = process_files(after_files, progress_var, folder_name='after')
-
-        table = []
-
-        for key in before_data:
-            b = before_data[key].split()
-            nick_b = b[0]
-
-            # Ищем наиболее похожий ник в after_data
-            after_nicks = [v.split()[0] for v in after_data.values()]
-            best_match = difflib.get_close_matches(nick_b, after_nicks, n=1, cutoff=0.8)
-
-            if best_match:
-                # Находим полную строку after
-                for a_val in after_data.values():
-                    if a_val.startswith(best_match[0]):
-                        a_values = a_val.split()
-                        break
-                if a_values and len(b) >= 4 and len(a_values) >= 4:
-                    nick = b[0]
-                    cls = b[2]
-                    honor_diff = int(a_values[3]) - int(b[3])
-                    kills_diff = int(a_values[4]) - int(b[4])
-                    table.append([nick, cls, honor_diff, kills_diff])
-
-        df_global = pd.DataFrame(table, columns=["Ник", "Класс", "Хонор", "Киллы"])
-        df_global.sort_values("Киллы", ascending=False, inplace=True)
-        table_text.insert(tk.END, df_global.to_string(index=False))
-        messagebox.showinfo("Готово", "Обработка завершена, таблица готова")
-
+        try:
+            total = len(before_files) + len(after_files)
+            current = [0]
+            reader = easyocr.Reader(['en', 'ru'], gpu=True)
+            before_data = process_files(before_files, 'before', current, total, progress_var, reader)
+            after_data = process_files(after_files, 'after', current, total, progress_var, reader)
+            table = []
+            for key in before_data:
+                b = before_data[key].split()
+                nick_b = b[0]
+                after_nicks = [v.split()[0] for v in after_data.values()]
+                best_match = difflib.get_close_matches(nick_b, after_nicks, n=1, cutoff=0.8)
+                if best_match:
+                    for a_val in after_data.values():
+                        if a_val.startswith(best_match[0]):
+                            a_values = a_val.split()
+                            break
+                    if a_values and len(b) >= 4 and len(a_values) >= 4:
+                        nick = b[0]
+                        cls = b[2]
+                        honor_diff = int(a_values[3]) - int(b[3])
+                        kills_diff = int(a_values[4]) - int(b[4])
+                        table.append([nick, cls, honor_diff, kills_diff])
+            df_global = pd.DataFrame(table, columns=["Ник", "Класс", "Хонор", "Киллы"])
+            df_global.sort_values("Киллы", ascending=False, inplace=True)
+            table_text.insert(tk.END, df_global.to_string(index=False))
+            messagebox.showinfo("Готово", "Обработка завершена, таблица готова")
+        finally:
+            start_button.config(state="normal")  # возвращаем кнопку
+            progress_var.set(0)  # сброс прогрессбара
     threading.Thread(target=worker).start()
 
 def stop_processing():
@@ -213,7 +180,7 @@ def stop_processing():
 def add_files(listbox):
     files = filedialog.askopenfilenames(filetypes=[("PNG Files","*.png")])
     for f in files:
-        listbox.insert(tk.END, str(Path(f)))  # поддержка кириллицы
+        listbox.insert(tk.END, str(Path(f)))
 
 def remove_selected(listbox):
     selected = listbox.curselection()
@@ -270,7 +237,8 @@ after_listbox.grid(row=1, column=1)
 tk.Button(frame, text="Добавить файлы", command=lambda: add_files(after_listbox)).grid(row=2, column=1)
 tk.Button(frame, text="Удалить выбранное", command=lambda: remove_selected(after_listbox)).grid(row=3, column=1)
 
-tk.Button(root, text="Старт", command=start_processing).pack(pady=5)
+start_button = tk.Button(root, text="Старт", command=start_processing)
+start_button.pack(pady=5)
 tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
 tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
 tk.Button(root, text="Сохранить лог", command=save_log_file).pack(pady=5)
@@ -280,16 +248,12 @@ progress_var = tk.IntVar()
 progress = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate", variable=progress_var)
 progress.pack(pady=5)
 
-# Поле для таблицы с прокруткой
 table_frame = tk.Frame(root)
 table_frame.pack(pady=5)
-
 scrollbar = tk.Scrollbar(table_frame)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
 table_text = tk.Text(table_frame, width=100, height=15, yscrollcommand=scrollbar.set)
 table_text.pack(side=tk.LEFT)
-
 scrollbar.config(command=table_text.yview)
 
 pd.set_option("display.max_rows", None)
