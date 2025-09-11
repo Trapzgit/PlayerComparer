@@ -21,7 +21,7 @@ if %errorlevel% neq 0 (
 
 REM Собираем exe
 echo Собираю exe...
-pyinstaller --onefile --windowed --name PlayerComparer main.py
+pyinstaller --onefile --windowed  --icon=icon.ico --name PlayerComparer main.py
 
 echo.
 echo =====================================

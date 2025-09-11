@@ -10,6 +10,10 @@ from PIL import Image
 import string
 import sys
 
+__version__ = "v1.4.0"
+
+
+
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
@@ -21,7 +25,7 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
 stop_flag = False
 df_global = pd.DataFrame()
 LOG_FILE = Path(sys.executable).parent / "logs.txt"
-
+version = 'v1.3.3'
 # ---------------------- Помощники ---------------------- #
 def safe_filename(name):
     valid_chars = string.ascii_letters + string.digits + "_"
@@ -246,8 +250,10 @@ def save_log_file():
 
 # ---------------------- GUI ---------------------- #
 root = tk.Tk()
-root.title("ArcheAge PlayersComparer v1.3.2")
-root.resizable(False, False)
+root.title(f"ArcheAge PlayersComparer "+__version__)
+root.minsize(800, 600)
+root.maxsize(1920, 1080)
+root.resizable(True, True)
 
 frame = tk.Frame(root)
 frame.pack(padx=10, pady=10)
