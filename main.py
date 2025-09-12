@@ -18,7 +18,7 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
            'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest', 'Iletyouhide',
            'Сомнительнополезен', 'Dimonishzv', 'Слабейшеебедствие', 'Особонеопасен','Пиуупиу', 'Ксюшасуперкрутая',
-           'Ксюшаоченькрутая']
+           'Ксюшаоченькрутая', 'Стараятварь', 'Знатокпоражений','Слабейшееоружее', 'Ssoptymysvprame' ]
 
 stop_flag = False
 df_global = pd.DataFrame()
@@ -72,8 +72,15 @@ def finalize_block(block_text):
             first_two.append(int(combined))
             i += 2
         else:
+            # если это первое число (honor) и оно 5-значное
+            if len(first_two) == 0 and len(num) == 5:
+                # проверяем, не стоит ли сразу после него однозначная цифра
+                if i + 1 < len(numbers) and len(numbers[i + 1]) == 1:
+                    num = num + numbers[i + 1]  # например, 70390 + 7 → 703907
+                    i += 1  # пропускаем эту цифру
             first_two.append(int(num))
             i += 1
+
     cleaned = f"{nick} Класс: {cls} {' '.join(map(str, first_two))}".strip()
     return cleaned
 

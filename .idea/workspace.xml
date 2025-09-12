@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.4.2&#10;added resize &#10;added version&#10;fix build.bat&#10;added icon">
+    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.5.0&#10;added restart in start button &#10;changed progress bar">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -43,20 +43,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.123.executor": "Run",
-    "Python.hsh.executor": "Run",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "D:/Programming/PlayerComparer",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.123.executor&quot;: &quot;Run&quot;,
+    &quot;Python.hsh.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Programming/PlayerComparer&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\Programming\PlayerComparer" />
@@ -299,7 +299,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757598508213</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="state v1.5.0&#10;added restart in start button &#10;changed progress bar">
+      <option name="closed" value="true" />
+      <created>1757616417372</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1757616417372</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -341,6 +349,7 @@
     <MESSAGE value="state v1.3.1&#10;fix sort text" />
     <MESSAGE value="state v1.3.2&#10;fix sort text" />
     <MESSAGE value="state v1.4.2&#10;added resize &#10;added version&#10;fix build.bat&#10;added icon" />
-    <option name="LAST_COMMIT_MESSAGE" value="state v1.4.2&#10;added resize &#10;added version&#10;fix build.bat&#10;added icon" />
+    <MESSAGE value="state v1.5.0&#10;added restart in start button &#10;changed progress bar" />
+    <option name="LAST_COMMIT_MESSAGE" value="state v1.5.0&#10;added restart in start button &#10;changed progress bar" />
   </component>
 </project>
