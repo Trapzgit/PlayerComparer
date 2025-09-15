@@ -10,7 +10,7 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.5.1"
+__version__ = "v1.6.0"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -224,6 +224,129 @@ def save_log_file():
             dst.write(src.read())
         messagebox.showinfo("Готово", f"Лог сохранен: {file_path}")
 
+def create_table_from_log():
+    global df_global
+
+    log_file_path = filedialog.askopenfilename(
+        title="Выберите файл лог",
+        filetypes=[("Text files", "*.txt")]
+    )
+    if not log_file_path:
+        return
+
+    with open(log_file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    blocks = content.split('--- ')
+    before_entries = []
+    after_entries = []
+
+    # Парсим блоки
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        if 'После обработки:' not in block:
+            continue
+
+        try:
+            after_text = block.split('После обработки:')[1].strip()
+        except IndexError:
+            continue
+
+        parts = after_text.split()
+        if len(parts) < 4:
+            continue
+
+        nick_raw = parts[0]
+        cls = parts[2]
+        try:
+            honor = int(parts[3])
+            kills = int(parts[4])
+        except (IndexError, ValueError):
+            honor = 0
+            kills = 0
+
+        # Корректировка ника через DD_list
+        matches = difflib.get_close_matches(nick_raw, DD_list, n=1, cutoff=0.6)
+        nick = matches[0] if matches else nick_raw
+
+        entry = {'nick': nick, 'class': cls, 'honor': honor, 'kills': kills}
+
+        if block.startswith('before/'):
+            before_entries.append(entry)
+        elif block.startswith('after/'):
+            after_entries.append(entry)
+
+    if not before_entries or not after_entries:
+        messagebox.showwarning("Внимание", "Не найдено данных в лог")
+        return
+
+    rows = []
+    matched_after_idx = set()
+    after_nick_list = [a['nick'] for a in after_entries]
+
+    # Сравниваем before и after
+    for b in before_entries:
+        bnick = b['nick']
+        bcls = b['class']
+        bhonor = b['honor']
+        bkills = b['kills']
+
+        candidate = None
+        candidate_idx = None
+
+        # 1) Точное совпадение
+        for idx, a in enumerate(after_entries):
+            if idx in matched_after_idx:
+                continue
+            if a['nick'] == bnick:
+                candidate = a
+                candidate_idx = idx
+                break
+
+        # 2) Нечеткое совпадение через DD_list
+        if candidate is None:
+            matches = difflib.get_close_matches(bnick, after_nick_list, n=5, cutoff=0.6)
+            for mname in matches:
+                for idx, a in enumerate(after_entries):
+                    if idx in matched_after_idx:
+                        continue
+                    if a['nick'] == mname:
+                        candidate = a
+                        candidate_idx = idx
+                        break
+                if candidate:
+                    break
+
+        # 3) Если пары нет, пропускаем
+        if candidate is None:
+            continue
+
+        matched_after_idx.add(candidate_idx)
+
+        dhonor = (candidate['honor'] or 0) - (bhonor or 0)
+        dkills = (candidate['kills'] or 0) - (bkills or 0)
+
+        use_class = bcls if bcls else candidate.get('class', '')
+
+        rows.append([b['nick'], use_class, dhonor, dkills])
+
+    if not rows:
+        messagebox.showwarning("Внимание", "Не удалось найти совпадения для игроков")
+        return
+
+    df_global = pd.DataFrame(rows, columns=["Ник", "Класс", "Δ Хонор", "Δ Киллы"])
+    df_global.sort_values("Δ Киллы", ascending=False, inplace=True)
+
+    table_text.delete(1.0, tk.END)
+    table_text.insert(tk.END, df_global.to_string(index=False))
+
+    messagebox.showinfo("Готово", f"Таблица создана. Найдено {len(rows)} совпадений.")
+
+
+
+
 # ---------------------- GUI ---------------------- #
 root = tk.Tk()
 root.title(f"ArcheAge PlayersComparer "+__version__)
@@ -251,6 +374,7 @@ start_button.pack(pady=5)
 tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
 tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
 tk.Button(root, text="Сохранить лог", command=save_log_file).pack(pady=5)
+tk.Button(root, text="Создать таблицу из лога", command=create_table_from_log).pack(pady=5)
 tk.Button(root, text="Выход", command=root.quit).pack(pady=5)
 
 progress_var = tk.IntVar()
