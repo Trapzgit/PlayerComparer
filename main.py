@@ -224,6 +224,8 @@ def save_log_file():
             dst.write(src.read())
         messagebox.showinfo("Готово", f"Лог сохранен: {file_path}")
 
+# ---------------------- Создание таблицы из файла лог ---------------------- #
+
 def create_table_from_log():
     global df_global
 
