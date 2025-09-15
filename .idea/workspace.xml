@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.5.0&#10;added restart in start button &#10;changed progress bar">
+    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.5.1&#10;fix honor and kills finding">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -307,7 +307,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757616417372</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="state v1.5.1&#10;fix honor and kills finding">
+      <option name="closed" value="true" />
+      <created>1757703548903</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1757703548903</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -350,6 +358,7 @@
     <MESSAGE value="state v1.3.2&#10;fix sort text" />
     <MESSAGE value="state v1.4.2&#10;added resize &#10;added version&#10;fix build.bat&#10;added icon" />
     <MESSAGE value="state v1.5.0&#10;added restart in start button &#10;changed progress bar" />
-    <option name="LAST_COMMIT_MESSAGE" value="state v1.5.0&#10;added restart in start button &#10;changed progress bar" />
+    <MESSAGE value="state v1.5.1&#10;fix honor and kills finding" />
+    <option name="LAST_COMMIT_MESSAGE" value="state v1.5.1&#10;fix honor and kills finding" />
   </component>
 </project>

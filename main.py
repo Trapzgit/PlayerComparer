@@ -10,15 +10,17 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.5.0"
+__version__ = "v1.5.1"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
-           'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest', 'Iletyouhide',
-           'Сомнительнополезен', 'Dimonishzv', 'Слабейшеебедствие', 'Особонеопасен','Пиуупиу', 'Ксюшасуперкрутая',
-           'Ксюшаоченькрутая', 'Стараятварь', 'Знатокпоражений','Слабейшееоружее', 'Ssoptymysvprame' ]
+           'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest',
+           'Iletyouhide', 'Сомнительнополезен', 'Dimonishzv', 'Слабейшеебедствие', 'Особонеопасен',
+           'Пиуупиу', 'Ксюшасуперкрутая', 'Ксюшаоченькрутая', 'Стараятварь', 'Знатокпоражений',
+           'Слабейшееоружее', 'Ssoptymysvprame', 'Pugl', 'Zyhzv', 'Chuccky', 'Преломилось',
+           'Незнающийпобеды']
 
 stop_flag = False
 df_global = pd.DataFrame()
