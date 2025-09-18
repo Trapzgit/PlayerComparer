@@ -1,6 +1,7 @@
+import threading
+import screenshot_mode
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
-import threading
 import pandas as pd
 import easyocr
 import re
@@ -10,7 +11,7 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.6.0"
+__version__ = "v1.7.0"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -74,12 +75,10 @@ def finalize_block(block_text):
             first_two.append(int(combined))
             i += 2
         else:
-            # если это первое число (honor) и оно 5-значное
             if len(first_two) == 0 and len(num) == 5:
-                # проверяем, не стоит ли сразу после него однозначная цифра
                 if i + 1 < len(numbers) and len(numbers[i + 1]) == 1:
-                    num = num + numbers[i + 1]  # например, 70390 + 7 → 703907
-                    i += 1  # пропускаем эту цифру
+                    num = num + numbers[i + 1]
+                    i += 1
             first_two.append(int(num))
             i += 1
 
@@ -119,7 +118,10 @@ def process_files(file_list, folder_name, current, total, progress_var, reader):
         new_name = safe_filename(file_path.stem) + file_path.suffix
         safe_path = file_path.parent / new_name
         if safe_path != file_path:
-            file_path.rename(safe_path)
+            try:
+                file_path.rename(safe_path)
+            except Exception as e:
+                print("Rename error:", e)
         file_path = safe_path
         resize_if_needed(file_path)
         text_result = reader.readtext(str(file_path), detail=0, paragraph=True)
@@ -225,7 +227,6 @@ def save_log_file():
         messagebox.showinfo("Готово", f"Лог сохранен: {file_path}")
 
 # ---------------------- Создание таблицы из файла лог ---------------------- #
-
 def create_table_from_log():
     global df_global
 
@@ -346,8 +347,12 @@ def create_table_from_log():
 
     messagebox.showinfo("Готово", f"Таблица создана. Найдено {len(rows)} совпадений.")
 
-
-
+# ---------------------- screenshot_mod ---------------------- #
+def run_screenshot_mode():
+    threading.Thread(
+        target=lambda: screenshot_mode.start_screenshot_mode(root, before_listbox, after_listbox),
+        daemon=True
+    ).start()
 
 # ---------------------- GUI ---------------------- #
 root = tk.Tk()
@@ -377,7 +382,25 @@ tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
 tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
 tk.Button(root, text="Сохранить лог", command=save_log_file).pack(pady=5)
 tk.Button(root, text="Создать таблицу из лога", command=create_table_from_log).pack(pady=5)
-tk.Button(root, text="Выход", command=root.quit).pack(pady=5)
+# кнопка выхода — теперь вызывает on_close
+def on_close():
+    # останавливаем observer (если запущен)
+    try:
+        screenshot_mode.stop_screenshot_mode()
+    except Exception as e:
+        print("Ошибка при остановке screenshot_mode:", e)
+    # останавливаем процессы обработки
+    try:
+        stop_processing()
+    except Exception:
+        pass
+    root.destroy()
+
+#tk.Button(root, text="Выход", command=on_close).pack(pady=5)
+tk.Button(root, text="Режим скриншот", command=run_screenshot_mode).pack(pady=5)
+
+# также привязываем крестик окна к on_close
+root.protocol("WM_DELETE_WINDOW", on_close)
 
 progress_var = tk.IntVar()
 progress = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate", variable=progress_var)
