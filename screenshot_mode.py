@@ -1,15 +1,17 @@
 import time
-import shutil
 from pathlib import Path
 import tkinter as tk
 from tkinter import messagebox
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from PIL import Image
 
-WATCH_DIR = Path(r"C:\Users\Trpz\Pictures\Screenshots")  # где Windows хранит скриншоты
-SAVE_DIR = Path("screenshots")  # куда сохраняем внутри программы
+# Папка, где ArcheAge сохраняет скриншоты
+WATCH_DIR = Path(r"C:\ArcheAge\Documents\ScreenShots")
+# Папка для хранения внутри программы
+SAVE_DIR = Path("screenshots")
 
-stop_flag = False
+# Глобальные переменные для управления режимом
 observer = None
 _control_window = None
 
@@ -23,19 +25,33 @@ class ScreenshotHandler(FileSystemEventHandler):
     def on_created(self, event):
         if event.is_directory:
             return
-        if event.src_path.lower().endswith(".png"):
+        if event.src_path.lower().endswith(".jpg"):
             src = Path(event.src_path)
             # ждём, пока файл полностью запишется
             time.sleep(0.5)
-            dest = SAVE_DIR / self.category / src.name
-            shutil.copy2(src, dest)
+
+            try:
+                with Image.open(src) as img:
+                    # Обрезаем по координатам (1170, 15) → (1890, 200)
+                    cropped = img.crop((1170, 15, 1890, 200))
+                    dest = SAVE_DIR / self.category / (src.stem + "_crop.png")
+                    cropped.save(dest)
+            except Exception as e:
+                print(f"[ERR] Ошибка обработки {src}: {e}")
+                return
+
+            # Добавляем в список
             self.listbox.insert(tk.END, str(dest))
-            print(f"[OK] Перемещён {src} → {dest}")
+            print(f"[OK] Обрезан {src} → {dest}")
 
 
 def start_screenshot_mode(root, before_listbox, after_listbox):
-    global stop_flag
-    stop_flag = False
+    global observer, _control_window
+
+    # Защита от повторного запуска
+    if observer is not None:
+        messagebox.showwarning("Режим скриншота", "Уже запущен! Сначала остановите текущий режим.")
+        return
 
     def choose_category():
         win = tk.Toplevel(root)
@@ -60,16 +76,18 @@ def start_screenshot_mode(root, before_listbox, after_listbox):
 
         _control_window = tk.Toplevel(root)
         _control_window.title("Режим скриншота")
-        tk.Label(_control_window, text=f"Новые скриншоты будут попадать в {category.upper()}\n"
-                                       f"Нажмите 'Стоп', чтобы выйти").pack(pady=10)
+        tk.Label(
+            _control_window,
+            text=f"Новые скриншоты F9 будут попадать в {category.upper()}\n"
+                 f"Нажмите 'Стоп', чтобы выйти"
+        ).pack(pady=10)
         tk.Button(_control_window, text="Стоп", command=lambda: stop_screenshot_mode(_control_window)).pack(pady=5)
 
     choose_category()
 
 
 def stop_screenshot_mode(win=None):
-    global observer, stop_flag, _control_window
-    stop_flag = True
+    global observer, _control_window
     if observer:
         observer.stop()
         observer.join()
