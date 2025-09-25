@@ -11,7 +11,7 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.8.1"
+__version__ = "v1.8.2"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -189,7 +189,12 @@ def stop_processing():
 
 # ---------------------- Работа с файлами ---------------------- #
 def add_files(listbox):
-    files = filedialog.askopenfilenames(filetypes=[("PNG Files","*.png")])
+    files = filedialog.askopenfilenames(
+        filetypes=[
+            ("Изображения", "*.png;*.jpg;*.jpeg"),
+            ("Все файлы", "*.*")
+        ]
+    )
     for f in files:
         listbox.insert(tk.END, str(Path(f)))
 
