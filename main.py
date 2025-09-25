@@ -315,7 +315,7 @@ def create_table_from_log():
 
         # 2) Нечеткое совпадение через DD_list
         if candidate is None:
-            matches = difflib.get_close_matches(bnick, after_nick_list, n=5, cutoff=0.6)
+            matches = difflib.get_close_matches(bnick, after_nick_list, n=5, cutoff=0.6) # % совпадения с ником
             for mname in matches:
                 for idx, a in enumerate(after_entries):
                     if idx in matched_after_idx:

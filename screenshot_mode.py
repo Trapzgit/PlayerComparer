@@ -32,7 +32,7 @@ class ScreenshotHandler(FileSystemEventHandler):
 
             try:
                 with Image.open(src) as img:
-                    # Обрезаем по координатам (1170, 15) → (1890, 200)
+                    # Обрезаем скриншот по координатам (индивидуально для каждого юзера, тк такргет и разрешение экрана у всех разное)
                     cropped = img.crop((1170, 15, 1890, 200))
                     dest = SAVE_DIR / self.category / (src.stem + "_crop.png")
                     cropped.save(dest)
@@ -85,7 +85,7 @@ def start_screenshot_mode(root, before_listbox, after_listbox):
 
     choose_category()
 
-
+# дроп скриншот режима
 def stop_screenshot_mode(win=None):
     global observer, _control_window
     if observer:
