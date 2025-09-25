@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.8.0&#10;recoding screenshot_mode.py">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.8.1&#10;add nick" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -362,7 +360,15 @@
       <option name="project" value="LOCAL" />
       <updated>1758228321018</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="state v1.8.1&#10;add nick">
+      <option name="closed" value="true" />
+      <created>1758825154163</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1758825154163</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -411,6 +417,7 @@
     <MESSAGE value="state v1.7.0&#10;add new function &quot;режим скриншот&quot;&#10;del  кнопка &quot;Выход&quot;" />
     <MESSAGE value="state v1.7.1&#10;new nicknames" />
     <MESSAGE value="state v1.8.0&#10;recoding screenshot_mode.py" />
-    <option name="LAST_COMMIT_MESSAGE" value="state v1.8.0&#10;recoding screenshot_mode.py" />
+    <MESSAGE value="state v1.8.1&#10;add nick" />
+    <option name="LAST_COMMIT_MESSAGE" value="state v1.8.1&#10;add nick" />
   </component>
 </project>
