@@ -11,7 +11,7 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.8.2"
+__version__ = "v1.8.4"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
