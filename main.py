@@ -11,9 +11,10 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.8.4"
+__version__ = "v1.8.5"
 
 # ---------------------- Настройки ---------------------- #
+#  '', '', '', '', '', '', '', '',
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
@@ -23,7 +24,7 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
            'Слабейшееоружее', 'Ssoptymysvprame', 'Pugl', 'Zyhzv', 'Chuccky', 'Преломилось',
            'Незнающийпобеды', 'Россияскоростная', 'Skripkazv','Бесполезный','Есычь','Chillingtouch',
            'Данотеламедиа', 'Maestrozv', 'Ineedhelp', 'Kazakhx', 'Lasttry', 'Крольчашь', 'Корольлоутаба',
-           'Fieakinexcellent', 'Starbust', '', '', '', '', '', '', '', '',]
+           'Fieakinexcellent', 'Starbust']
 
 stop_flag = False
 df_global = pd.DataFrame()
