@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.8.4&#10;New nickname">
+    <list default="true" id="3d659031-ec07-452b-9ad0-b2651a4bfba1" name="Changes" comment="state v1.8.5&#10;New nickname">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -410,7 +410,23 @@
       <option name="project" value="LOCAL" />
       <updated>1758907168452</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="state v1.8.5&#10;New nickname">
+      <option name="closed" value="true" />
+      <created>1760638440137</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1760638440137</updated>
+    </task>
+    <task id="LOCAL-00034" summary="state v1.8.5&#10;New nickname">
+      <option name="closed" value="true" />
+      <created>1760638892954</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1760638892954</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -437,7 +453,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Create requirements.txt" />
     <MESSAGE value="Create build.sh" />
     <MESSAGE value="Create build.sh fix" />
     <MESSAGE value="Create .gitignore build.bat" />
@@ -462,6 +477,7 @@
     <MESSAGE value="state v1.8.2&#10;*.png;*.jpg;*.jpeg" />
     <MESSAGE value="state v1.8.3&#10;fixes" />
     <MESSAGE value="state v1.8.4&#10;New nickname" />
-    <option name="LAST_COMMIT_MESSAGE" value="state v1.8.4&#10;New nickname" />
+    <MESSAGE value="state v1.8.5&#10;New nickname" />
+    <option name="LAST_COMMIT_MESSAGE" value="state v1.8.5&#10;New nickname" />
   </component>
 </project>
