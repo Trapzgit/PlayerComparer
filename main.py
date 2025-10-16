@@ -22,7 +22,8 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
            'Пиуупиу', 'Ксюшасуперкрутая', 'Ксюшаоченькрутая', 'Стараятварь', 'Знатокпоражений',
            'Слабейшееоружее', 'Ssoptymysvprame', 'Pugl', 'Zyhzv', 'Chuccky', 'Преломилось',
            'Незнающийпобеды', 'Россияскоростная', 'Skripkazv','Бесполезный','Есычь','Chillingtouch',
-           'Данотеламедиа', 'Maestrozv']
+           'Данотеламедиа', 'Maestrozv', 'Ineedhelp', 'Kazakhx', 'Lasttry', 'Крольчашь', 'Корольлоутаба',
+           'Fieakinexcellent', 'Starbust', '', '', '', '', '', '', '', '',]
 
 stop_flag = False
 df_global = pd.DataFrame()
