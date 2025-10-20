@@ -11,8 +11,8 @@ from PIL import Image
 import string
 import sys
 import json
-
-__version__ = "v2.0.0"
+import numpy as np
+__version__ = "v2.1.0"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -179,6 +179,17 @@ def clear_log():
         LOG_FILE.unlink()
     LOG_FILE.touch()
 
+# ---------------------- Обрезка скринов в RAM ---------------------- #
+def crop_image_in_memory(image_path):
+    """Возвращает обрезанное изображение как numpy array для EasyOCR."""
+    try:
+        img = Image.open(image_path).convert("RGB")  # RGB на всякий случай
+        cropped = img.crop(CROP_REGION)
+        return np.array(cropped)  # 👈 конвертируем в numpy array
+    except Exception as e:
+        print(f"[ERR] Ошибка обрезки {image_path}: {e}")
+        return None
+
 # ---------------------- Обработка файлов ---------------------- #
 def process_files(file_list, folder_name, current, total, progress_var, reader):
     global stop_flag
@@ -195,13 +206,20 @@ def process_files(file_list, folder_name, current, total, progress_var, reader):
             except Exception as e:
                 print("Rename error:", e)
         file_path = safe_path
-        crop_image_to_region(file_path)  # 👈 заменили resize_if_needed
-        text_result = reader.readtext(str(file_path), detail=0, paragraph=True)
+
+        # Получаем обрезанное изображение в памяти
+        cropped_img = crop_image_in_memory(file_path)
+        if cropped_img is None:
+            continue
+
+        # OCR из объекта Image
+        text_result = reader.readtext(cropped_img, detail=0, paragraph=True)
         full_text = " ".join(text_result)
         corrected = correct_nick(full_text)
         cleaned = finalize_block(corrected)
         write_log(file_path.name, folder_name, full_text, cleaned)
         results[file_path.name] = cleaned
+
         current[0] += 1
         progress_var.set(int(current[0] / total * 100))
     return results
