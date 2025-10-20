@@ -8,13 +8,27 @@ from PIL import Image
 
 # Папка, где ArcheAge сохраняет скриншоты
 WATCH_DIR = Path(r"C:\ArcheAge\Documents\ScreenShots")
-# Папка для хранения внутри программы
-SAVE_DIR = Path("screenshots")
+SAVE_DIR = Path(r"C:\ArcheAge\Documents\ScreenShots")
 
-# Глобальные переменные для управления режимом
 observer = None
 _control_window = None
 
+# --- общая функция для обрезки изображений (та же, что в main.py) ---
+CROP_REGION = (1170, 15, 1890, 200)
+
+def crop_image_to_region(image_path, save_path):
+    """Обрезает изображение по заданной области, если ещё не обрезано."""
+    try:
+        img = Image.open(image_path)
+        w, h = img.size
+        if w <= (CROP_REGION[2] - CROP_REGION[0]) and h <= (CROP_REGION[3] - CROP_REGION[1]):
+            img.save(save_path)
+            return
+        cropped = img.crop(CROP_REGION)
+        cropped.save(save_path)
+        print(f"[OK] Обрезан {image_path} → {save_path}")
+    except Exception as e:
+        print(f"[ERR] Ошибка обработки {image_path}: {e}")
 
 class ScreenshotHandler(FileSystemEventHandler):
     def __init__(self, category, listbox):
@@ -25,30 +39,15 @@ class ScreenshotHandler(FileSystemEventHandler):
     def on_created(self, event):
         if event.is_directory:
             return
-        if event.src_path.lower().endswith(".jpg"):
+        if event.src_path.lower().endswith((".jpg", ".png", ".jpeg")):
             src = Path(event.src_path)
-            # ждём, пока файл полностью запишется
             time.sleep(0.5)
-
-            try:
-                with Image.open(src) as img:
-                    # Обрезаем скриншот по координатам (индивидуально для каждого юзера, тк такргет и разрешение экрана у всех разное)
-                    cropped = img.crop((1170, 15, 1890, 200))
-                    dest = SAVE_DIR / self.category / (src.stem + "_crop.png")
-                    cropped.save(dest)
-            except Exception as e:
-                print(f"[ERR] Ошибка обработки {src}: {e}")
-                return
-
-            # Добавляем в список
+            dest = SAVE_DIR / self.category / (src.stem + "_crop.png")
+            crop_image_to_region(src, dest)
             self.listbox.insert(tk.END, str(dest))
-            print(f"[OK] Обрезан {src} → {dest}")
-
 
 def start_screenshot_mode(root, before_listbox, after_listbox):
     global observer, _control_window
-
-    # Защита от повторного запуска
     if observer is not None:
         messagebox.showwarning("Режим скриншота", "Уже запущен! Сначала остановите текущий режим.")
         return
@@ -85,7 +84,6 @@ def start_screenshot_mode(root, before_listbox, after_listbox):
 
     choose_category()
 
-# дроп скриншот режима
 def stop_screenshot_mode(win=None):
     global observer, _control_window
     if observer:

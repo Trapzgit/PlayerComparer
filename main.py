@@ -11,10 +11,9 @@ from PIL import Image
 import string
 import sys
 
-__version__ = "v1.8.5"
+__version__ = "v1.9.0"
 
 # ---------------------- Настройки ---------------------- #
-#  '', '', '', '', '', '', '', '',
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
            'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
            'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
@@ -96,13 +95,31 @@ def write_log(filename, folder_name, raw_text, final_text):
         f.write("После обработки:\n")
         f.write(final_text + "\n\n")
 
-def resize_if_needed(image_path, min_width=1500, min_height=500):
-    with Image.open(image_path) as img:
-        width, height = img.size
-        if width != min_width or height != min_height:
-            img = img.resize((min_width, min_height), Image.LANCZOS)
-            img.save(image_path)
-            print(f"Resized {image_path} to {min_width}x{min_height}")
+# ---------------------- Обрезка изображений ---------------------- #
+CROP_REGION = (1170, 15, 1890, 200)  # область для обрезки
+
+def crop_image_to_region(image_path, save_over=True):
+    """Обрезает изображение по заданной области, если оно ещё не обрезано."""
+    try:
+        img = Image.open(image_path)
+        w, h = img.size
+
+        if w <= (CROP_REGION[2] - CROP_REGION[0]) and h <= (CROP_REGION[3] - CROP_REGION[1]):
+            return image_path  # уже обрезано
+
+        cropped = img.crop(CROP_REGION)
+        if save_over:
+            cropped.save(image_path)
+            print(f"[OK] Обрезано: {image_path}")
+            return image_path
+        else:
+            new_path = Path(image_path).with_stem(Path(image_path).stem + "_cropped")
+            cropped.save(new_path)
+            print(f"[OK] Создан: {new_path}")
+            return str(new_path)
+    except Exception as e:
+        print(f"[ERR] Ошибка обрезки {image_path}: {e}")
+        return image_path
 
 # ---------------------- Лог ---------------------- #
 def clear_log():
@@ -126,7 +143,7 @@ def process_files(file_list, folder_name, current, total, progress_var, reader):
             except Exception as e:
                 print("Rename error:", e)
         file_path = safe_path
-        resize_if_needed(file_path)
+        crop_image_to_region(file_path)  # 👈 заменили resize_if_needed
         text_result = reader.readtext(str(file_path), detail=0, paragraph=True)
         full_text = " ".join(text_result)
         corrected = correct_nick(full_text)
@@ -141,7 +158,7 @@ def process_files(file_list, folder_name, current, total, progress_var, reader):
 def start_processing():
     global stop_flag, df_global
     stop_flag = False
-    df_global = pd.DataFrame()  # сброс перед запуском
+    df_global = pd.DataFrame()
     clear_log()
     before_files = before_listbox.get(0, tk.END)
     after_files = after_listbox.get(0, tk.END)
@@ -150,7 +167,7 @@ def start_processing():
         return
     progress_var.set(0)
     table_text.delete(1.0, tk.END)
-    start_button.config(state="disabled")  # блокируем кнопку
+    start_button.config(state="disabled")
 
     def worker():
         global df_global
@@ -180,10 +197,10 @@ def start_processing():
             df_global = pd.DataFrame(table, columns=["Ник", "Класс", "Хонор", "Киллы"])
             df_global.sort_values("Киллы", ascending=False, inplace=True)
             table_text.insert(tk.END, df_global.to_string(index=False))
-            messagebox.showinfo("Готово", "Обработка завершена, таблица готова")
+            messagebox.showinfo("Готово", "Обработка завершена")
         finally:
-            start_button.config(state="normal")  # возвращаем кнопку
-            progress_var.set(0)  # сброс прогрессбара
+            start_button.config(state="normal")
+            progress_var.set(0)
     threading.Thread(target=worker).start()
 
 def stop_processing():
@@ -193,10 +210,7 @@ def stop_processing():
 # ---------------------- Работа с файлами ---------------------- #
 def add_files(listbox):
     files = filedialog.askopenfilenames(
-        filetypes=[
-            ("Изображения", "*.png;*.jpg;*.jpeg"),
-            ("Все файлы", "*.*")
-        ]
+        filetypes=[("Изображения", "*.png;*.jpg;*.jpeg"), ("Все файлы", "*.*")]
     )
     for f in files:
         listbox.insert(tk.END, str(Path(f)))
