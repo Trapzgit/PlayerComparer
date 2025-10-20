@@ -10,8 +10,9 @@ from pathlib import Path
 from PIL import Image
 import string
 import sys
+import json
 
-__version__ = "v1.9.0"
+__version__ = "v1.10.0"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -28,6 +29,28 @@ DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Rev
 stop_flag = False
 df_global = pd.DataFrame()
 LOG_FILE = Path(sys.executable).parent / "logs.txt"
+CONFIG_FILE = Path("crop_config.json")
+
+# --- Загружаем или создаём настройки обрезки ---
+def load_crop_region():
+    if CONFIG_FILE.exists():
+        try:
+            data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+            if all(k in data for k in ["x1", "y1", "x2", "y2"]):
+                return (data["x1"], data["y1"], data["x2"], data["y2"])
+        except Exception:
+            pass
+    # Значения по умолчанию
+    default = (1170, 15, 1890, 200)
+    save_crop_region(*default)
+    return default
+
+def save_crop_region(x1, y1, x2, y2):
+    data = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+    CONFIG_FILE.write_text(json.dumps(data, indent=4, ensure_ascii=False), encoding="utf-8")
+
+# --- Загружаем актуальные координаты ---
+CROP_REGION = load_crop_region()
 
 # ---------------------- Помощники ---------------------- #
 def safe_filename(name):
@@ -208,6 +231,61 @@ def stop_processing():
     stop_flag = True
 
 # ---------------------- Работа с файлами ---------------------- #
+
+def open_crop_settings():
+    """Открывает окно для изменения координат CROP_REGION."""
+    def save_and_close():
+        try:
+            x1 = int(entry_x1.get())
+            y1 = int(entry_y1.get())
+            x2 = int(entry_x2.get())
+            y2 = int(entry_y2.get())
+            if x2 <= x1 or y2 <= y1:
+                messagebox.showerror("Ошибка", "x2/y2 должны быть больше x1/y1!")
+                return
+            save_crop_region(x1, y1, x2, y2)
+            global CROP_REGION
+            CROP_REGION = (x1, y1, x2, y2)
+            messagebox.showinfo("Сохранено", f"Координаты обновлены:\n{x1}, {y1}, {x2}, {y2}")
+            win.destroy()
+        except ValueError:
+            messagebox.showerror("Ошибка", "Введите только числа!")
+
+    win = tk.Toplevel()
+    win.title("Настройки области обрезки")
+    win.geometry("300x220")
+    win.resizable(False, False)
+
+    tk.Label(win, text="Введите координаты обрезки:").pack(pady=5)
+
+    frm = tk.Frame(win)
+    frm.pack(pady=10)
+
+    tk.Label(frm, text="x1:").grid(row=0, column=0)
+    entry_x1 = tk.Entry(frm, width=8)
+    entry_x1.grid(row=0, column=1, padx=5)
+
+    tk.Label(frm, text="y1:").grid(row=1, column=0)
+    entry_y1 = tk.Entry(frm, width=8)
+    entry_y1.grid(row=1, column=1, padx=5)
+
+    tk.Label(frm, text="x2:").grid(row=2, column=0)
+    entry_x2 = tk.Entry(frm, width=8)
+    entry_x2.grid(row=2, column=1, padx=5)
+
+    tk.Label(frm, text="y2:").grid(row=3, column=0)
+    entry_y2 = tk.Entry(frm, width=8)
+    entry_y2.grid(row=3, column=1, padx=5)
+
+    # Подставляем текущие значения
+    entry_x1.insert(0, CROP_REGION[0])
+    entry_y1.insert(0, CROP_REGION[1])
+    entry_x2.insert(0, CROP_REGION[2])
+    entry_y2.insert(0, CROP_REGION[3])
+
+    tk.Button(win, text="Сохранить", command=save_and_close).pack(pady=10)
+    tk.Button(win, text="Отмена", command=win.destroy).pack()
+
 def add_files(listbox):
     files = filedialog.askopenfilenames(
         filetypes=[("Изображения", "*.png;*.jpg;*.jpeg"), ("Все файлы", "*.*")]
@@ -404,6 +482,12 @@ tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
 tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
 tk.Button(root, text="Сохранить лог", command=save_log_file).pack(pady=5)
 tk.Button(root, text="Создать таблицу из лога", command=create_table_from_log).pack(pady=5)
+
+crop_frame = tk.Frame(root)
+crop_frame.pack(pady=5)
+
+tk.Button(crop_frame, text="Настройки обрезки", command=open_crop_settings).pack()
+
 # кнопка выхода — теперь вызывает on_close
 def on_close():
     # останавливаем observer (если запущен)
