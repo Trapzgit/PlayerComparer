@@ -12,7 +12,7 @@ import string
 import sys
 import json
 
-__version__ = "v1.10.0"
+__version__ = "v2.0.0"
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -30,6 +30,35 @@ stop_flag = False
 df_global = pd.DataFrame()
 LOG_FILE = Path(sys.executable).parent / "logs.txt"
 CONFIG_FILE = Path("crop_config.json")
+DD_FILE = Path("dd_list.json")
+
+def load_dd_list():
+    if DD_FILE.exists():
+        with open(DD_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    else:
+        # создаём файл с дефолтным списком
+        default_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
+                        'Luthicx', 'Olven', 'Скуфнатраппере', 'Владосхристос', 'Zshturmovik', 'Арбузбек',
+                        'Rabbittt', 'Срал', 'Sheeeshh', 'Shzs', 'Невсегдасвятой','Хорошиймальчик',
+                        'Гламурныйахэгао', 'Вожакстаданегрилл', 'Pesdexely', 'Hikikomorri','Secretquest',
+                        'Iletyouhide', 'Сомнительнополезен', 'Dimonishzv', 'Слабейшеебедствие', 'Особонеопасен',
+                        'Пиуупиу', 'Ксюшасуперкрутая', 'Ксюшаоченькрутая', 'Стараятварь', 'Знатокпоражений',
+                        'Слабейшееоружее', 'Ssoptymysvprame', 'Pugl', 'Zyhzv', 'Chuccky', 'Преломилось',
+                        'Незнающийпобеды', 'Россияскоростная', 'Skripkazv','Бесполезный','Есычь','Chillingtouch',
+                        'Данотеламедиа', 'Maestrozv', 'Ineedhelp', 'Kazakhx', 'Lasttry', 'Крольчашь', 'Корольлоутаба',
+                        'Fieakinexcellent', 'Starbust']
+
+        with open(DD_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_list, f, ensure_ascii=False, indent=2)
+        return default_list
+
+def save_dd_list(dd_list):
+    with open(DD_FILE, "w", encoding="utf-8") as f:
+        json.dump(dd_list, f, ensure_ascii=False, indent=2)
+
+# Загружаем при запуске
+DD_list = load_dd_list()
 
 # --- Загружаем или создаём настройки обрезки ---
 def load_crop_region():
@@ -190,7 +219,8 @@ def start_processing():
         return
     progress_var.set(0)
     table_text.delete(1.0, tk.END)
-    start_button.config(state="disabled")
+
+    btn_start.config(state="disabled")
 
     def worker():
         global df_global
@@ -222,7 +252,7 @@ def start_processing():
             table_text.insert(tk.END, df_global.to_string(index=False))
             messagebox.showinfo("Готово", "Обработка завершена")
         finally:
-            start_button.config(state="normal")
+            btn_start.config(state="normal")
             progress_var.set(0)
     threading.Thread(target=worker).start()
 
@@ -231,6 +261,27 @@ def stop_processing():
     stop_flag = True
 
 # ---------------------- Работа с файлами ---------------------- #
+
+def add_nick_to_ddlist():
+    def save_nick():
+        nick = entry.get().strip()
+        if not nick:
+            messagebox.showwarning("Ошибка", "Введите ник")
+            return
+        if nick in DD_list:
+            messagebox.showinfo("Инфо", "Такой ник уже есть в базе")
+            return
+        DD_list.append(nick)
+        save_dd_list(DD_list)
+        messagebox.showinfo("Готово", f"Ник '{nick}' добавлен в базу!")
+        win.destroy()
+
+    win = tk.Toplevel(root)
+    win.title("Добавить ник")
+    tk.Label(win, text="Введите ник для добавления:").pack(pady=10)
+    entry = tk.Entry(win, width=40)
+    entry.pack(padx=10)
+    tk.Button(win, text="Сохранить", command=save_nick).pack(pady=10)
 
 def open_crop_settings():
     """Открывает окно для изменения координат CROP_REGION."""
@@ -454,73 +505,188 @@ def run_screenshot_mode():
         daemon=True
     ).start()
 
-# ---------------------- GUI ---------------------- #
+# ---------------------- GUI (Тёмная тема) ---------------------- #
+BG_COLOR = "#2E2E2E"        # фон окна
+FRAME_BG = "#383838"         # фон фреймов
+BTN_COLOR = "#4A90E2"        # кнопки
+BTN_HOVER = "#357ABD"        # при наведении
+BTN_TEXT = "#FFFFFF"
+LBL_COLOR = "#E0E0E0"
+TEXT_BG = "#1E1E1E"
+TEXT_FG = "#E0E0E0"
+PROG_COLOR = "#4A90E2"
+
 root = tk.Tk()
-root.title(f"ArcheAge PlayersComparer "+__version__)
-root.minsize(800, 600)
-root.maxsize(1920, 1080)
-root.resizable(True, True)
+root.title(f"ArcheAge PlayersComparer {__version__}")
+root.minsize(900, 600)
+root.configure(bg=BG_COLOR)
 
-frame = tk.Frame(root)
-frame.pack(padx=10, pady=10)
+# --------- Tooltips ----------
+class ToolTip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tipwindow = None
+        widget.bind("<Enter>", self.show)
+        widget.bind("<Leave>", self.hide)
 
-tk.Label(frame, text="До:").grid(row=0, column=0)
-before_listbox = tk.Listbox(frame, width=60)
-before_listbox.grid(row=1, column=0)
-tk.Button(frame, text="Добавить файлы", command=lambda: add_files(before_listbox)).grid(row=2, column=0)
-tk.Button(frame, text="Удалить выбранное", command=lambda: remove_selected(before_listbox)).grid(row=3, column=0)
+    def show(self, event=None):
+        if self.tipwindow or not self.text:
+            return
+        x, y, cx, cy = self.widget.bbox("insert") or (0,0,0,0)
+        x = x + self.widget.winfo_rootx() + 25
+        y = y + self.widget.winfo_rooty() + 25
+        self.tipwindow = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.configure(bg="#333333")
+        label = tk.Label(tw, text=self.text, bg="#333333", fg="#FFFFFF",
+                         relief='solid', borderwidth=1, font=("Arial", 9))
+        label.pack()
+        tw.wm_geometry(f"+{x}+{y}")
 
-tk.Label(frame, text="После:").grid(row=0, column=1)
-after_listbox = tk.Listbox(frame, width=60)
-after_listbox.grid(row=1, column=1)
-tk.Button(frame, text="Добавить файлы", command=lambda: add_files(after_listbox)).grid(row=2, column=1)
-tk.Button(frame, text="Удалить выбранное", command=lambda: remove_selected(after_listbox)).grid(row=3, column=1)
+    def hide(self, event=None):
+        if self.tipwindow:
+            self.tipwindow.destroy()
+            self.tipwindow = None
 
-start_button = tk.Button(root, text="Старт", command=start_processing)
-start_button.pack(pady=5)
-tk.Button(root, text="Стоп", command=stop_processing).pack(pady=5)
-tk.Button(root, text="Выгрузить в Excel", command=save_table_excel).pack(pady=5)
-tk.Button(root, text="Сохранить лог", command=save_log_file).pack(pady=5)
-tk.Button(root, text="Создать таблицу из лога", command=create_table_from_log).pack(pady=5)
+# --------- Hover ----------
+def on_enter(e):
+    e.widget['bg'] = BTN_HOVER
+def on_leave(e):
+    e.widget['bg'] = BTN_COLOR
 
-crop_frame = tk.Frame(root)
-crop_frame.pack(pady=5)
+# --------- Frames ----------
+file_frame = tk.Frame(root, bg=FRAME_BG, bd=2, relief="groove")
+file_frame.pack(padx=10, pady=10, fill=tk.X)
 
-tk.Button(crop_frame, text="Настройки обрезки", command=open_crop_settings).pack()
+# До/После списки
+left_frame = tk.Frame(file_frame, bg=FRAME_BG)
+left_frame.grid(row=0, column=0, padx=10, pady=5)
+tk.Label(left_frame, text="До:", bg=FRAME_BG, fg=LBL_COLOR).pack(anchor="w")
+before_listbox = tk.Listbox(left_frame, width=50, height=6, bg=TEXT_BG, fg=TEXT_FG,
+                            selectbackground="#555555")
+before_listbox.pack(pady=5)
+btn_before_add = tk.Button(left_frame, text="Добавить файлы", bg=BTN_COLOR, fg=BTN_TEXT,
+                           command=lambda: add_files(before_listbox))
+btn_before_add.pack(pady=2, fill=tk.X)
+btn_before_add.bind("<Enter>", on_enter)
+btn_before_add.bind("<Leave>", on_leave)
+ToolTip(btn_before_add, "Добавить файлы для сравнения 'До'")
 
-# кнопка выхода — теперь вызывает on_close
+btn_before_remove = tk.Button(left_frame, text="Удалить выбранное", bg=BTN_COLOR, fg=BTN_TEXT,
+                              command=lambda: remove_selected(before_listbox))
+btn_before_remove.pack(pady=2, fill=tk.X)
+btn_before_remove.bind("<Enter>", on_enter)
+btn_before_remove.bind("<Leave>", on_leave)
+ToolTip(btn_before_remove, "Удалить выбранные файлы из списка 'До'")
+
+right_frame = tk.Frame(file_frame, bg=FRAME_BG)
+right_frame.grid(row=0, column=1, padx=10, pady=5)
+tk.Label(right_frame, text="После:", bg=FRAME_BG, fg=LBL_COLOR).pack(anchor="w")
+after_listbox = tk.Listbox(right_frame, width=50, height=6, bg=TEXT_BG, fg=TEXT_FG,
+                           selectbackground="#555555")
+after_listbox.pack(pady=5)
+btn_after_add = tk.Button(right_frame, text="Добавить файлы", bg=BTN_COLOR, fg=BTN_TEXT,
+                          command=lambda: add_files(after_listbox))
+btn_after_add.pack(pady=2, fill=tk.X)
+btn_after_add.bind("<Enter>", on_enter)
+btn_after_add.bind("<Leave>", on_leave)
+ToolTip(btn_after_add, "Добавить файлы для сравнения 'После'")
+
+btn_after_remove = tk.Button(right_frame, text="Удалить выбранное", bg=BTN_COLOR, fg=BTN_TEXT,
+                             command=lambda: remove_selected(after_listbox))
+btn_after_remove.pack(pady=2, fill=tk.X)
+btn_after_remove.bind("<Enter>", on_enter)
+btn_after_remove.bind("<Leave>", on_leave)
+ToolTip(btn_after_remove, "Удалить выбранные файлы из списка 'После'")
+
+# ---------------------- Кнопки действий ---------------------- #
+action_frame = tk.Frame(root, bg=BG_COLOR)
+action_frame.pack(pady=10)
+
+btn_start = tk.Button(action_frame, text="▶", font=("Arial", 14, "bold"), bg=BTN_COLOR, fg=BTN_TEXT,
+                      width=4, height=1, command=start_processing)
+btn_start.grid(row=0, column=0, padx=5)
+btn_start.bind("<Enter>", on_enter)
+btn_start.bind("<Leave>", on_leave)
+ToolTip(btn_start, "Запустить обработку файлов")
+
+btn_stop = tk.Button(action_frame, text="■", font=("Arial", 14, "bold"), bg=BTN_COLOR, fg=BTN_TEXT,
+                     width=4, height=1, command=stop_processing)
+btn_stop.grid(row=0, column=1, padx=5)
+btn_stop.bind("<Enter>", on_enter)
+btn_stop.bind("<Leave>", on_leave)
+ToolTip(btn_stop, "Остановить текущую обработку")
+
+btn_excel = tk.Button(action_frame, text="Excel", bg=BTN_COLOR, fg=BTN_TEXT, width=10,
+                      command=save_table_excel)
+btn_excel.grid(row=0, column=2, padx=5)
+btn_excel.bind("<Enter>", on_enter)
+btn_excel.bind("<Leave>", on_leave)
+ToolTip(btn_excel, "Сохранить таблицу в Excel")
+
+btn_log = tk.Button(action_frame, text="Лог", bg=BTN_COLOR, fg=BTN_TEXT, width=10,
+                    command=save_log_file)
+btn_log.grid(row=0, column=3, padx=5)
+btn_log.bind("<Enter>", on_enter)
+btn_log.bind("<Leave>", on_leave)
+ToolTip(btn_log, "Сохранить лог обработки")
+
+btn_from_log = tk.Button(action_frame, text="Из лога", bg=BTN_COLOR, fg=BTN_TEXT, width=10,
+                         command=create_table_from_log)
+btn_from_log.grid(row=0, column=4, padx=5)
+btn_from_log.bind("<Enter>", on_enter)
+btn_from_log.bind("<Leave>", on_leave)
+ToolTip(btn_from_log, "Создать таблицу из файла лога")
+
+btn_screenshot = tk.Button(action_frame, text="📷", bg=BTN_COLOR, fg=BTN_TEXT, width=4,
+                           command=run_screenshot_mode)
+btn_screenshot.grid(row=0, column=5, padx=5)
+btn_screenshot.bind("<Enter>", on_enter)
+btn_screenshot.bind("<Leave>", on_leave)
+ToolTip(btn_screenshot, "Режим скриншота")
+
+btn_crop = tk.Button(action_frame, text="✂", bg=BTN_COLOR, fg=BTN_TEXT, width=4,
+                     command=open_crop_settings)
+btn_crop.grid(row=0, column=6, padx=5)
+btn_crop.bind("<Enter>", on_enter)
+btn_crop.bind("<Leave>", on_leave)
+ToolTip(btn_crop, "Настройки области обрезки")
+
+btn_add_nick = tk.Button(action_frame, text="+", bg=BTN_COLOR, fg=BTN_TEXT, width=4,
+                         command=add_nick_to_ddlist)
+btn_add_nick.grid(row=0, column=7, padx=5)
+btn_add_nick.bind("<Enter>", on_enter)
+btn_add_nick.bind("<Leave>", on_leave)
+ToolTip(btn_add_nick, "Добавить ник в базу DD_list")
+
+# --------- Прогресс ---------
+progress_var = tk.IntVar()
+style = ttk.Style()
+style.theme_use('clam')
+style.configure("blue.Horizontal.TProgressbar", troughcolor="#555555", background=PROG_COLOR)
+progress = ttk.Progressbar(root, style="blue.Horizontal.TProgressbar", orient="horizontal",
+                           length=600, mode="determinate", variable=progress_var)
+progress.pack(pady=5)
+
+# --------- Таблица ---------
+table_frame = tk.Frame(root, bg=BG_COLOR)
+table_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+scrollbar = tk.Scrollbar(table_frame)
+scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+table_text = tk.Text(table_frame, width=120, height=15, yscrollcommand=scrollbar.set,
+                     bg=TEXT_BG, fg=TEXT_FG, font=("Consolas", 10))
+table_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+scrollbar.config(command=table_text.yview)
+
+# Закрытие приложения
 def on_close():
-    # останавливаем observer (если запущен)
     try:
         screenshot_mode.stop_screenshot_mode()
     except Exception as e:
         print("Ошибка при остановке screenshot_mode:", e)
-    # останавливаем процессы обработки
-    try:
-        stop_processing()
-    except Exception:
-        pass
+    stop_processing()
     root.destroy()
 
-#tk.Button(root, text="Выход", command=on_close).pack(pady=5)
-tk.Button(root, text="Режим скриншот", command=run_screenshot_mode).pack(pady=5)
-
-# также привязываем крестик окна к on_close
 root.protocol("WM_DELETE_WINDOW", on_close)
-
-progress_var = tk.IntVar()
-progress = ttk.Progressbar(root, orient="horizontal", length=400, mode="determinate", variable=progress_var)
-progress.pack(pady=5)
-
-table_frame = tk.Frame(root)
-table_frame.pack(pady=5)
-scrollbar = tk.Scrollbar(table_frame)
-scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-table_text = tk.Text(table_frame, width=100, height=15, yscrollcommand=scrollbar.set)
-table_text.pack(side=tk.LEFT)
-scrollbar.config(command=table_text.yview)
-
-pd.set_option("display.max_rows", None)
-pd.set_option("display.max_columns", None)
-
 root.mainloop()
