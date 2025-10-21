@@ -12,7 +12,9 @@ import string
 import sys
 import json
 import numpy as np
-__version__ = "v2.1.0"
+
+__version__ = "v2.1.2"
+reader_global = easyocr.Reader(['en', 'ru'], gpu=True)
 
 # ---------------------- Настройки ---------------------- #
 DD_list = ['Lnl', 'Nebovesna', 'Runbott', 'Trpvz', 'Pesdaliss', 'Oguricap', 'Revanx',
@@ -192,39 +194,62 @@ def crop_image_in_memory(image_path):
 
 # ---------------------- Обработка файлов ---------------------- #
 def process_files(file_list, folder_name, current, total, progress_var, reader):
+    """
+    Обрабатывает список файлов: обрезка в памяти, OCR, очистка и запись в лог.
+    Обновляет прогресс бар плавно.
+    """
+    import gc
+    import numpy as np
+    from PIL import Image
+
     global stop_flag
     results = {}
+
     for file_str in file_list:
         if stop_flag:
             break
+
         file_path = Path(file_str)
-        new_name = safe_filename(file_path.stem) + file_path.suffix
-        safe_path = file_path.parent / new_name
-        if safe_path != file_path:
-            try:
-                file_path.rename(safe_path)
-            except Exception as e:
-                print("Rename error:", e)
-        file_path = safe_path
+        with Image.open(file_path) as img:
+            # Обрезка в памяти
+            cropped_img = img.crop(CROP_REGION)
+            cropped_np = np.array(cropped_img)  # PIL -> numpy для EasyOCR
 
-        # Получаем обрезанное изображение в памяти
-        cropped_img = crop_image_in_memory(file_path)
-        if cropped_img is None:
-            continue
-
-        # OCR из объекта Image
-        text_result = reader.readtext(cropped_img, detail=0, paragraph=True)
+        # OCR
+        text_result = reader.readtext(cropped_np, detail=0, paragraph=True)
         full_text = " ".join(text_result)
+
+        # Обработка текста
         corrected = correct_nick(full_text)
         cleaned = finalize_block(corrected)
+
+        # Лог
         write_log(file_path.name, folder_name, full_text, cleaned)
         results[file_path.name] = cleaned
 
+        # Очистка памяти
+        del text_result
+        del cropped_img
+        del cropped_np
+        gc.collect()
+
+        # Плавное обновление прогресс бара
         current[0] += 1
-        progress_var.set(int(current[0] / total * 100))
+        steps = 30  # количество подшагов
+        for i in range(steps):
+            if stop_flag:
+                break
+            progress_var.set(int((current[0] - 1 + i / steps) / total * 100))
+            root.update_idletasks()
+
     return results
 
 # ---------------------- Поток обработки ---------------------- #
+
+def stop_processing():
+    global stop_flag
+    stop_flag = True
+
 def start_processing():
     global stop_flag, df_global
     stop_flag = False
@@ -235,9 +260,9 @@ def start_processing():
     if not before_files or not after_files:
         messagebox.showwarning("Ошибка", "Добавьте файлы до и после")
         return
+
     progress_var.set(0)
     table_text.delete(1.0, tk.END)
-
     btn_start.config(state="disabled")
 
     def worker():
@@ -245,9 +270,11 @@ def start_processing():
         try:
             total = len(before_files) + len(after_files)
             current = [0]
-            reader = easyocr.Reader(['en', 'ru'], gpu=True)
-            before_data = process_files(before_files, 'before', current, total, progress_var, reader)
-            after_data = process_files(after_files, 'after', current, total, progress_var, reader)
+
+            # используем глобальный reader
+            before_data = process_files(before_files, 'before', current, total, progress_var, reader_global)
+            after_data = process_files(after_files, 'after', current, total, progress_var, reader_global)
+
             table = []
             for key in before_data:
                 b = before_data[key].split()
@@ -265,6 +292,7 @@ def start_processing():
                         honor_diff = int(a_values[3]) - int(b[3])
                         kills_diff = int(a_values[4]) - int(b[4])
                         table.append([nick, cls, honor_diff, kills_diff])
+
             df_global = pd.DataFrame(table, columns=["Ник", "Класс", "Хонор", "Киллы"])
             df_global.sort_values("Киллы", ascending=False, inplace=True)
             table_text.insert(tk.END, df_global.to_string(index=False))
@@ -272,11 +300,8 @@ def start_processing():
         finally:
             btn_start.config(state="normal")
             progress_var.set(0)
-    threading.Thread(target=worker).start()
 
-def stop_processing():
-    global stop_flag
-    stop_flag = True
+    threading.Thread(target=worker, daemon=True).start()
 
 # ---------------------- Работа с файлами ---------------------- #
 
