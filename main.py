@@ -13,7 +13,7 @@ import sys
 import json
 import numpy as np
 
-__version__ = "v2.1.3"
+__version__ = "v2.1.4"
 reader_global = easyocr.Reader(['en', 'ru'], gpu=True)
 
 # ---------------------- Настройки ---------------------- #
@@ -140,7 +140,7 @@ def write_log(filename, folder_name, raw_text, final_text):
         f.write(final_text + "\n\n")
 
 # ---------------------- Обрезка изображений ---------------------- #
-CROP_REGION = (1170, 15, 1890, 200)  # область для обрезки
+#CROP_REGION = (1170, 15, 1890, 200)  # область для обрезки
 
 def crop_image_to_region(image_path, save_over=True):
     """Обрезает изображение по заданной области, если оно ещё не обрезано."""
