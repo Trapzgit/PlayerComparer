@@ -5,46 +5,68 @@ from tkinter import messagebox
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from PIL import Image
+import json
 
 # Папка, где ArcheAge сохраняет скриншоты
 WATCH_DIR = Path(r"C:\ArcheAge\Documents\ScreenShots")
-SAVE_DIR = Path(r"C:\ArcheAge\Documents\ScreenShots")
+# Папка внутри проекта для сохраняемых скриншотов (before/after)
+SAVE_BASE = Path("screenshots")
+
+# конфиг (подгружаем те же координаты, что и main)
+CONFIG_FILE = Path("crop_config.json")
+DEFAULT_CROP = (1170, 15, 1890, 200)
+TARGET_WIDTH = 1500
+TARGET_HEIGHT = 500
+
+def load_crop_region():
+    if CONFIG_FILE.exists():
+        try:
+            data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+            if all(k in data for k in ("x1","y1","x2","y2")):
+                return (int(data["x1"]), int(data["y1"]), int(data["x2"]), int(data["y2"]))
+        except Exception:
+            pass
+    return DEFAULT_CROP
+
+CROP_REGION = load_crop_region()
 
 observer = None
 _control_window = None
 
-# --- общая функция для обрезки изображений (та же, что в main.py) ---
-CROP_REGION = (1170, 15, 1890, 200)
-
-def crop_image_to_region(image_path, save_path):
-    """Обрезает изображение по заданной области, если ещё не обрезано."""
+def crop_and_save_scaled(src_path: Path, dest_path: Path):
+    """Обрезает по CROP_REGION и сохраняет масштабированное изображение в dest_path."""
     try:
-        img = Image.open(image_path)
-        w, h = img.size
-        if w <= (CROP_REGION[2] - CROP_REGION[0]) and h <= (CROP_REGION[3] - CROP_REGION[1]):
-            img.save(save_path)
-            return
-        cropped = img.crop(CROP_REGION)
-        cropped.save(save_path)
-        print(f"[OK] Обрезан {image_path} → {save_path}")
+        with Image.open(src_path) as im:
+            im = im.convert("RGB")
+            cropped = im.crop(CROP_REGION)
+            resized = cropped.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.LANCZOS)
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            resized.save(dest_path)
+            print(f"[OK] {src_path} -> {dest_path}")
     except Exception as e:
-        print(f"[ERR] Ошибка обработки {image_path}: {e}")
+        print(f"[ERR] crop_and_save_scaled {src_path}: {e}")
 
 class ScreenshotHandler(FileSystemEventHandler):
     def __init__(self, category, listbox):
         self.category = category
         self.listbox = listbox
-        (SAVE_DIR / category).mkdir(parents=True, exist_ok=True)
+        (SAVE_BASE / category).mkdir(parents=True, exist_ok=True)
 
     def on_created(self, event):
         if event.is_directory:
             return
-        if event.src_path.lower().endswith((".jpg", ".png", ".jpeg")):
+        # поддерживаем jpg/png/jpeg
+        if event.src_path.lower().endswith((".jpg", ".jpeg", ".png")):
             src = Path(event.src_path)
+            # ждём записи файла
             time.sleep(0.5)
-            dest = SAVE_DIR / self.category / (src.stem + "_crop.png")
-            crop_image_to_region(src, dest)
-            self.listbox.insert(tk.END, str(dest))
+            dest = (SAVE_BASE / self.category / (src.stem + "_crop.png"))
+            crop_and_save_scaled(src, dest)
+            # добавляем в listbox (строка)
+            try:
+                self.listbox.insert(tk.END, str(dest))
+            except Exception:
+                pass
 
 def start_screenshot_mode(root, before_listbox, after_listbox):
     global observer, _control_window
@@ -75,11 +97,7 @@ def start_screenshot_mode(root, before_listbox, after_listbox):
 
         _control_window = tk.Toplevel(root)
         _control_window.title("Режим скриншота")
-        tk.Label(
-            _control_window,
-            text=f"Новые скриншоты F9 будут попадать в {category.upper()}\n"
-                 f"Нажмите 'Стоп', чтобы выйти"
-        ).pack(pady=10)
+        tk.Label(_control_window, text=f"Новые скриншоты F9 будут попадать в {category.upper()}\nНажмите 'Стоп', чтобы выйти").pack(pady=10)
         tk.Button(_control_window, text="Стоп", command=lambda: stop_screenshot_mode(_control_window)).pack(pady=5)
 
     choose_category()
@@ -91,11 +109,17 @@ def stop_screenshot_mode(win=None):
         observer.join()
         observer = None
     if win:
-        win.destroy()
+        try:
+            win.destroy()
+        except Exception:
+            pass
     if _control_window:
         try:
             _control_window.destroy()
-        except:
+        except Exception:
             pass
         _control_window = None
-    messagebox.showinfo("Режим скриншота", "Остановлен")
+    try:
+        messagebox.showinfo("Режим скриншота", "Остановлен")
+    except Exception:
+        pass
